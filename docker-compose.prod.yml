@@ -15,6 +15,7 @@ services:
   # Public entry point: serves React and proxies /api to backend
   proxy:
     image: nginx:alpine
+    restart: unless-stopped
     depends_on:
       - backend
     ports:
@@ -36,6 +37,7 @@ services:
       DB_USER: root
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: visionstudio
+    restart: unless-stopped
     expose:
       - "3000"
     depends_on:
@@ -60,6 +62,7 @@ services:
       PMA_HOST: db
       PMA_USER: root
       PMA_PASSWORD: ${DB_PASSWORD}
+    restart: unless-stopped     
     ports:
       - "127.0.0.1:8000:80"   # only accessible from the server itself
     depends_on:
