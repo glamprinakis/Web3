@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Install deps
 COPY node/package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source
 COPY node/ .
@@ -17,4 +17,4 @@ EXPOSE 3000
 # Optional healthcheck so compose knows when it's ready
 HEALTHCHECK --interval=30s --timeout=3s   CMD wget -qO- http://localhost:3000/health || exit 1
 
-CMD [npm, start]
+CMD ["npm", "start"]

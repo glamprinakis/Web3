@@ -8,6 +8,7 @@ import '../assets/styles/Product.css';
 function Product(){
     const { pid } = useParams(); // route like /product/:pid
     const [product, setProduct] = useState(null);
+    const [num, setNum] = useState(0);
 
     useEffect(() => {
         // If you have an endpoint for single product, use it.
@@ -33,9 +34,6 @@ function Product(){
         }
     };
 
-    if (!product) return <div>Loading...</div>;
-
-    const [num, setNum] = useState(0);
     const CounterI = () => {
         setNum (num+1);   
     }
@@ -43,6 +41,8 @@ function Product(){
         if(num > 0)
             setNum (num-1);
     }
+
+    if (!product) return <div>Loading...</div>;
     return(
         <div className="product">
             <Breadcrumb items={[{"path":"/categories", "label":"Κατηγορίες"}, {"path":"/categories/laptops", "label":"Laptops"}, {"path":"#","label":product.name}]}></Breadcrumb>
