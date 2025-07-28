@@ -1,0 +1,17 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Install deps
+COPY react/package*.json ./
+RUN npm ci
+
+# Copy source
+COPY react/ .
+
+# IMPORTANT: we build with a relative API base so the browser calls /api on the same origin
+ARG REACT_APP_API_URL=/api
+ENV REACT_APP_API_URL=
+
+# Build the static site
+RUN npm run build

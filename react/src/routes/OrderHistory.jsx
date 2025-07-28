@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { api } from '../api';
 import Navbar from "../components/Navbar";
 import BreadCrumb from '../components/BreadCrumb';
 import Footer from '../components/Footer';
@@ -28,31 +29,21 @@ const styles = {
 }
 
 function OrderHistory() {
+    const uid = localStorage.getItem('uid'); // however you store it
+    const [orders, setOrders] = useState([]);
+    const [lines, setLines] = useState([]);
 
-    const [firstName, setFirstName] = useState("")
-    const [lastName, setLastName] = useState("")
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [password2, setPassword2] = useState("")
+    useEffect(() => {
+        if (!uid) return;
+        api.get(`/users/${uid}/orders`)
+            .then(res => setOrders(res.data)) // array of { totalOrderId }
+            .catch(console.error);
+    }, [uid]);
 
-    const handleChangeName = (event) => {
-        setFirstName(event.target.value);
+    const openOrder = async (totalOrderId) => {
+        const { data } = await api.get(`/orders/${totalOrderId}/products`);
+        setLines(data); // render in UI
     };
-    const handleChangeSurname = (event) => {
-        setLastName(event.target.value);
-    };
-    const handleChangeEmail = (event) => {
-        setEmail(event.target.value);
-    };
-    const handleChangePassword = (event) => {
-        setPassword(event.target.value);
-    };
-    const handleChangePassword2 = (event) => {
-        setPassword2(event.target.value);
-    };
-    const handleRegister = async () => {
-        console.log(firstName + lastName + email)
-    }
 
     return (
         <div className="login">
@@ -68,145 +59,19 @@ function OrderHistory() {
 
             <br></br>
 
-            <div className="pending-order cart-section container">
+            <h2>Orders</h2>
+            <ul>
+                {orders.map(o => (
+                    <li key={o.totalOrderId}>
+                        {o.totalOrderId} <button onClick={() => openOrder(o.totalOrderId)}>View</button>
+                    </li>
+                ))}
+            </ul>
 
-                <div className="cart-up">
-
-                    <div className="screen">
-                        <table>
-                            <tbody>
-                                <tr className="headers">
-                                    <th><b>ΑΡΙΘΜΟΣ ΠΑΡΑΓΓΕΛΙΑΣ</b></th>
-                                    <th><b>ΗΜΕΡΟΜΗΝΙΑ</b></th>
-                                    <th><b>ΚΑΤΑΣΤΑΣΗ</b></th>
-                                    <th><b>ΠΟΣΟ ΠΛΗΡΩΜΗΣ</b></th>
-                                </tr>
-
-                                <tr>
-                                    <th>456456456</th>
-                                    <th>23/10/2023</th>
-                                    <th>ΣΤΗ ΜΕΤΑΦΟΡΙΚΗ</th>
-                                    <th>2885.00€</th>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <br></br>
-                        <div className="text-center">
-                            <h5><b>ΠΛΗΡΟΦΟΡΙΕΣ ΠΑΡΑΓΓΕΛΙΑΣ</b></h5>
-                        </div>
-                        <br></br>
-
-                        {
-                            products_cart.products.map((product) => {
-                                return <TableRow
-                                    key={product.id}
-                                    name={product.name}
-                                    price={product.price}
-                                    quantity={product.quantity}
-                                    product_image={product.img}
-                                />
-                            })
-                        }
-                    </div>
-                </div>
-
-            </div>
-
-            <br></br>
-
-            <div className="delivered-order cart-section container">
-
-                <div className="cart-up">
-
-                    <div className="screen">
-                        <table>
-                            <tbody>
-                                <tr className="headers">
-                                    <th><b>ΑΡΙΘΜΟΣ ΠΑΡΑΓΓΕΛΙΑΣ</b></th>
-                                    <th><b>ΗΜΕΡΟΜΗΝΙΑ</b></th>
-                                    <th><b>ΚΑΤΑΣΤΑΣΗ</b></th>
-                                    <th><b>ΠΟΣΟ ΠΛΗΡΩΜΗΣ</b></th>
-                                </tr>
-
-                                <tr>
-                                    <th>456456456</th>
-                                    <th>23/10/2023</th>
-                                    <th>ΠΑΡΑΔΟΘΗΚΕ</th>
-                                    <th>2885.00€</th>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <br></br>
-                        <div className="text-center">
-                            <h5><b>ΠΛΗΡΟΦΟΡΙΕΣ ΠΑΡΑΓΓΕΛΙΑΣ</b></h5>
-                        </div>
-                        <br></br>
-
-                        {
-                            products_cart.products.map((product) => {
-                                return <TableRow
-                                    key={product.id}
-                                    name={product.name}
-                                    price={product.price}
-                                    quantity={product.quantity}
-                                    product_image={product.img}
-                                />
-                            })
-                        }
-                    </div>
-                </div>
-
-
-            </div>
-
-            <br></br>
-
-            <div className="cancelled-order cart-section container">
-
-                <div className="cart-up">
-
-                    <div className="screen">
-                        <table>
-                            <tbody>
-                                <tr className="headers">
-                                    <th><b>ΑΡΙΘΜΟΣ ΠΑΡΑΓΓΕΛΙΑΣ</b></th>
-                                    <th><b>ΗΜΕΡΟΜΗΝΙΑ</b></th>
-                                    <th><b>ΚΑΤΑΣΤΑΣΗ</b></th>
-                                    <th><b>ΠΟΣΟ ΠΛΗΡΩΜΗΣ</b></th>
-                                </tr>
-
-                                <tr>
-                                    <th>456456456</th>
-                                    <th>23/10/2023</th>
-                                    <th>ΑΚΥΡΩΘΗΚΕ</th>
-                                    <th>2885.00€</th>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <br></br>
-                        <div className="text-center">
-                            <h5><b>ΠΛΗΡΟΦΟΡΙΕΣ ΠΑΡΑΓΓΕΛΙΑΣ</b></h5>
-                        </div>
-                        <br></br>
-
-                        <tr>
-                            {
-                                products_cart.products.map((product) => {
-                                    return <TableRow
-                                        key={product.id}
-                                        name={product.name}
-                                        price={product.price}
-                                        quantity={product.quantity}
-                                        product_image={product.img}
-                                    />
-                                })
-                            }
-                        </tr>
-                    </div>
-                </div>
-
-            </div>
-
+            <h3>Items</h3>
+            <ul>
+                {lines.map((l, i) => <li key={i}>{l.pid} x {l.orderAmount}</li>)}
+            </ul>
         </div>
     )
 }

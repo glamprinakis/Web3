@@ -1,10 +1,32 @@
-import React from "react";
+import React, { useState } from "react";
+import { api } from '../api';
 import "../assets/styles/Contact.css"
 import GoogleMapReact from 'google-map-react';
 
 const AnyReactComponent = ({ text }) => <div>{text}</div>;
 
 export default function Contact(){
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
+    const [subject, setSubject] = useState('');
+    const [message, setMessage] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post('/contact', { name, email, message });
+            alert('Το μήνυμά σας στάλθηκε επιτυχώς!');
+            // Reset form
+            setName('');
+            setEmail('');
+            setPhone('');
+            setSubject('');
+            setMessage('');
+        } catch (error) {
+            alert('Σφάλμα κατά την αποστολή του μηνύματος. Παρακαλώ δοκιμάστε ξανά.');
+        }
+    };
 
     const defaultProps = {
         center: {
@@ -51,18 +73,53 @@ export default function Contact(){
                     <div className="right">
                         <h4>ΣΤΕΙΛΤΕ ΜΑΣ ΤΗΝ ΕΡΩΤΗΣΗ ΣΑΣ</h4>
                         <span>Θα εξυπηρετήσουμε άμεσα το αιτημά σου</span>
-                        <div className="mt-4 d-flex w-100 flex-column form-container">
+                        <form onSubmit={handleSubmit} className="mt-4 d-flex w-100 flex-column form-container">
                             <div className="mt-2 d-flex justify-content-between w-100">
-                                <input className="border border-2 border-secondary form-input" style={{width:'48%'}} placeholder="Ονοματεπώνυμο" type="text"></input>
-                                <input className="border border-2 border-secondary form-input" style={{width:'48%'}} placeholder="Email" type="text"></input>
+                                <input 
+                                    className="border border-2 border-secondary form-input" 
+                                    style={{width:'48%'}} 
+                                    placeholder="Ονοματεπώνυμο" 
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
+                                />
+                                <input 
+                                    className="border border-2 border-secondary form-input" 
+                                    style={{width:'48%'}} 
+                                    placeholder="Email" 
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    required
+                                />
                             </div>
-                            <input className="mt-4 w-100 border border-2 border-secondary form-input" placeholder="Κινητό τηλέφωνο" type="text"></input>
-                            <input className="mt-4 w-100 border border-2 border-secondary form-input" placeholder="Θέμα μηνύματος" type="text"></input>
-                            <input className="mt-4 w-100 border border-2 border-secondary form-input" placeholder="Γράψτε το ερώτημά σας" type="text"></input>
+                            <input 
+                                className="mt-4 w-100 border border-2 border-secondary form-input" 
+                                placeholder="Κινητό τηλέφωνο" 
+                                type="text"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                            />
+                            <input 
+                                className="mt-4 w-100 border border-2 border-secondary form-input" 
+                                placeholder="Θέμα μηνύματος" 
+                                type="text"
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                            />
+                            <textarea 
+                                className="mt-4 w-100 border border-2 border-secondary form-input" 
+                                placeholder="Γράψτε το ερώτημά σας" 
+                                rows="4"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                                required
+                            />
                             <div className="mt-4 w-100 d-flex justify-content-start">
-                                <button className="btn btn-lg btn-success fs-6 fw-bold">ΥΠΟΒΟΛΗ</button>
+                                <button type="submit" className="btn btn-lg btn-success fs-6 fw-bold">ΥΠΟΒΟΛΗ</button>
                             </div>
-                        </div>
+                        </form>
                     </div>
                 </div>
 

@@ -1,13 +1,26 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {Link} from "react-router-dom";
 
 import BreadCrumb from "../components/BreadCrumb";
 import ProductCarousel from "../components/ProductCarousel";
+import { api } from '../api'; // or './api' depending on folder
 
 import '../assets/styles/Home.css';
 import bannerRight from '../assets/images/image 1.png';
 
 function Home(){
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        api.get('/products')
+            .then(res => setItems(res.data))
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }, []);
+
+    if (loading) return <div>Loading...</div>;
+    
     return (
         <div className="Home">
             <BreadCrumb/>
@@ -28,13 +41,11 @@ function Home(){
                 </div>
             </div>
             <ProductCarousel title="Δημοφιλή προϊόντα" products={
-                [
-                    {"img":"https://static.skyassets.com/contentstack/assets/blt143e20b03d72047e/blt8937265d6aa0575b/622a7dd8eda9a1043584adcb/Carousel_iPad_Blue_Placement02.png"},
-                    {"img":"https://images.macrumors.com/t/Au-OUIb73hHvx2w8CirAir5bNbM=/1600x/article-new/2013/09/macbook-air-m2-roundup-header.png"},
-                    {"img":"https://a-power.com/app/uploads/2019/09/5879186_5812260896-600x974.png"},
-                    {"img":"https://dlcdnwebimgs.asus.com/gain/EFF9D6D8-2F6C-4E76-989F-E5DB594052BA/w717/h525"},
-                    {"img":"https://dlcdnwebimgs.asus.com/gain/E0E15911-885A-421B-A775-5E1854731699"}
-                ]
+                items.map(p => ({
+                    "img": p.image_url || "https://via.placeholder.com/300x300",
+                    "name": p.name,
+                    "id": p.pid
+                }))
             }/>
             <div className="w-100 ms-auto me-auto categories-title">
                 <span style={{marginLeft:"11rem"}} className="home-categories-title">Ψάξτε ανά κατηγορία</span>
@@ -66,13 +77,11 @@ function Home(){
                 </Link>            
             </div>
             <ProductCarousel title="Νέα προϊόντα" products={
-                [
-                    {"img":"https://www.in-win.com/uploads/Product/gaming-chassis/d-frame-2/d-frame2_overview_options_02.png"},
-                    {"img":"https://asset.msi.com/resize/image/global/product/product_1665552671c76199be0956de9b63d7e35b33b91acb.png62405b38c58fe0f07fcef2367d8a9ba1/1024.png"},
-                    {"img":"https://shop.asisnet.gr/wp-content/uploads/2022/06/DELL-Server-PowerEdge-R550-2U.png"},
-                    {"img":"https://www.notebookcheck.net/fileadmin/Notebooks/News/_nc3/Alienware_x14_3.png"},
-                    {"img":"https://p1-ofp.static.pub/medias/bWFzdGVyfHJvb3R8MjI2NDY5fGltYWdlL3BuZ3xoMDEvaGQxLzE0MDgwNDg0ODY4MTI2LnBuZ3xjZTM1YWNmODQxYWQyNDdjYzEyOTFkNTE1NmIwMjBkMGY0MDBjODY0ODgyNjAxNDA2NDQxYjMwYzc1MDBjZjAy/lenovo-laptop-thinkpad-x1-nano-13-hero.png"}            
-                ]
+                items.slice(0, 5).map(p => ({
+                    "img": p.image_url || "https://via.placeholder.com/300x300",
+                    "name": p.name,
+                    "id": p.pid
+                }))
             }/>
         </div>
     )

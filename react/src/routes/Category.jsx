@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef} from "react";
 import {useParams, Link} from 'react-router-dom'
 import BreadCrumb from '../components/BreadCrumb';
+import { api } from '../api';
 
 import Slider from '@mui/material/Slider';
 
@@ -21,8 +22,14 @@ export default function Category(){
     const [filtered, setFiltered] = useState([]);
 
     useEffect(() => {
-      fetchData();
-    }, []);
+        if (!categoryId) return;
+        api.get(`/products/${encodeURIComponent(categoryId)}`)
+            .then(res => {
+                setData(res.data);
+                setFiltered(res.data);
+            })
+            .catch(console.error);
+    }, [categoryId]);
 
     const filterPrice = async (newValue) => {
         let priceFiltered = data.filter(function (e){
@@ -61,23 +68,11 @@ export default function Category(){
             newArray = [...newArray, ...apples]
         }
         if(!clicked){
-            fetchData()
+            setFiltered(data)
         }else{
             setFiltered(newArray)
         }
     }
-  
-    const fetchData = async () => {
-      try {
-        const response = await fetch('http://localhost:3005/products/laptops'); 
-        const jsonData = await response.json();
-        jsonData.sort((a, b) => a.price - b.price);
-        setData(jsonData);
-        setFiltered(jsonData)
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
     
 
     return(

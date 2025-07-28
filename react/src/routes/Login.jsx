@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { api } from '../api';
 
 import BreadCrumb from '../components/BreadCrumb';
 
@@ -8,42 +9,23 @@ import image from '../assets/images/image 5.png'
 import {jwtDecode} from "jwt-decode";
 
 function Login(){
+    const [usr, setUsr] = useState('');
+    const [pwd, setPwd] = useState('');
+    const navigate = useNavigate();
 
-    const [username, setUsername] = useState("")
-    const [password, setPassword] = useState("")
-    const [alert, setAlert] = useState(false)
-    
-    const handleChangeUsername = (event) => {
-        setUsername(event.target.value);
-    };
-    const handleChangePassword = (event) => {
-        setPassword(event.target.value);
-    };
-    const handleLogin = async () => {
-
-        const data = {usr:username, pwd:password}
+    const onSubmit = async (e) => {
+        e.preventDefault();
         try {
-            const response = await fetch("http://localhost:3005/user/login", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(data),
-            });
-            if(response.status == 401){
-                setAlert(true)
-            }else{
-                const result = await response.json();
-                let token = result.token;
-                let tokenData = jwtDecode(token);
-                localStorage.setItem('username', tokenData.userName)
-                localStorage.setItem('userId', tokenData.userId)
-                window.location.href = "/";
-            }
-          } catch (error) {
-            console.error("Error:", error);
-          }
-    }
+            const { data } = await api.post('/user/login', { usr, pwd });
+            // backend returns: { token }
+            localStorage.setItem('token', data.token);
+            // if your backend also returns uid/username, store them; if not, store separately after a user
+            // localStorage.setItem('uid', data.uid);
+            navigate('/'); // or wherever
+        } catch (e) {
+            alert('Wrong username or password');
+        }
+    };
 
 
 
@@ -52,14 +34,6 @@ function Login(){
             <BreadCrumb                 
                 items={[{"path":"/login","label":"Σύνδεση"}]}>
             </BreadCrumb>
-            {alert &&
-                <div class="alert alert-danger d-flex align-items-center w-50 ms-auto me-auto mt-2" role="alert">
-                    <i class="bi bi-exclamation-triangle me-5"></i>
-                    <div>
-                        Παρακαλώ ελέγξτε τα στοιχεία εισόδου και ξαναπροσπαθήστε
-                    </div>
-                </div>
-            }
             <div className="ms-auto me-auto mt-3 login-container d-flex">
                 <div className="left">
                         <img className="image-hover" alt="" src={image}></img>
@@ -85,25 +59,25 @@ function Login(){
 
                 </div>
                 <div className="right d-flex align-items-center justify-content-center">
-                    <div className="login-form bg-body">
+                    <form onSubmit={onSubmit} className="login-form bg-body">
                         <div className="mt-5 w-100 text-center fw-bold fs-3">
                             Έχετε ήδη λογαριασμό ;
                         </div>
                         <div className="w-100 d-flex justify-content-center mt-4">
-                            <input onChange={handleChangeUsername} value={username} id="login-username" type="text" placeholder="Username"></input>
+                            <input value={usr} onChange={e => setUsr(e.target.value)} placeholder="Username" />
                         </div>
                         <div className="w-100 d-flex justify-content-center mt-3">
-                            <input onChange={handleChangePassword} value={password} id="login-password" type="password" placeholder="Password"></input>
+                            <input value={pwd} onChange={e => setPwd(e.target.value)} placeholder="Password" type="password" />
                         </div>
                         <div className="w-100 d-flex justify-content-center mt-4">
-                            <button onClick={handleLogin} className="fw-bold login-btn btn btn-success">Είσοδος</button>
+                            <button type="submit" className="fw-bold login-btn btn btn-success">Είσοδος</button>
                         </div>
                         <div className="mt-4 w-100 text-center">
                             <Link to="/forgot-account" className="fst-italic fs-5 fw-bold forgot-account">
                                 Ξεχάσατε τα στοιχεία εισόδου ;
                             </Link>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
