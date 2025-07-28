@@ -1,23 +1,97 @@
-# Special Topics in User Interface Interaction Design (HMMY281) Course Project
+# Web3 E‑Commerce App
 
-### The main goal for this project is to redesign a web app (in our case a well known e-shop) in order to achieve better interaction between end users and the app interface
+A Dockerized full‑stack e‑commerce web application built with React, Node.js/Express, and MySQL, served behind Nginx. Production‑ready deployment to AWS EC2 with SSL support.
 
-## Technologies used
-![image](https://img.shields.io/badge/Docker-2CA5E0?style=for-the-badge&logo=docker&logoColor=white)
-![image](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![image](https://img.shields.io/badge/Express%20js-000000?style=for-the-badge&logo=express&logoColor=white)
-![image](https://img.shields.io/badge/MySQL-005C84?style=for-the-badge&logo=mysql&logoColor=white)
-![image](https://img.shields.io/badge/JavaScript-323330?style=for-the-badge&logo=javascript&logoColor=F7DF1E)
-![image](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-![image](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-![image](https://img.shields.io/badge/Material%20UI-007FFF?style=for-the-badge&logo=mui&logoColor=white)
-![image](https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white)
+## Features
 
-## Docker service diagram
+- **React frontend** with dynamic product listings, categories, cart, checkout, user auth, and profile management.
+- **Express API** with JWT‑based authentication, secure parameterized MySQL queries, and order management.
+- **MySQL 8** datastore, initialized from SQL dumps.
+- **phpMyAdmin** for DB administration (SSH/SSM tunnel only).
+- **Nginx reverse proxy** serving static React build, proxying `/api` to the backend, with automated Let’s Encrypt SSL.
+- **Docker Compose** (`docker-compose.prod.yml`) orchestrates all services on a private network.
+- **Bootstrap script** for one‑step EC2 setup.
+- **GitHub Actions** pipeline for zero‑touch frontend UI deploys.
 
-![image](https://github.com/eieronymakis/human-computer-interaction/blob/main/human-computer-interaction.drawio.png?raw=true)
+## Repository Structure
 
-## How to deploy
-* Make sure docker & docker compose is installed on your machine
-* Navigate to the project folder in your machine
-* Simply run ``` docker compose up ```
+```
+Web3/
+├─ react/                # React source
+├─ node/                 # Express API source
+├─ db/                   # SQL initialization scripts
+├─ nginx.conf            # Nginx config for HTTP/HTTPS
+├─ Dockerfile.frontend   # Multi‑stage build for React static assets
+├─ Dockerfile.backend    # Build instructions for Express API
+├─ docker-compose.prod.yml # Production Docker Compose file
+├─ bootstrap.sh          # One‑step EC2 deploy script
+├─ Makefile              # Helper targets (build, up, down, logs, ssh‑tunnel)
+└─ .env.example          # Example environment variables
+```
+
+## Prerequisites
+
+- **Docker** & **Docker Compose**
+- **Node.js** & **npm** (for local frontend dev)
+- AWS EC2 instance (Ubuntu 22.04+)
+- Domain (e.g. `glamprinakis.com`)
+
+## Quickstart (Local)
+
+```bash
+# Clone
+git clone https://github.com/glamprinakis/Web3.git
+cd Web3
+
+# Copy example env
+cp .env.example .env
+# Edit .env for local testing
+
+# Build React and start all services
+make build up
+
+# Visit frontend: http://localhost/
+# phpMyAdmin: http://localhost:8000
+```
+
+## Production Deploy (EC2)
+
+1. **Launch EC2**, open ports 80/443, attach Elastic IP.
+2. **SSH** in, install Docker & Compose.
+3. **Clone repo** and set secrets:
+   ```bash
+   git clone https://github.com/glamprinakis/Web3.git
+   cd Web3
+   ./bootstrap.sh DB_PASSWORD=yourDbPw JWT_SECRET=yourJwtSecret
+   ```
+4. **Visit**: http\://\<your‑elastic‑ip>/ (or [https://glamprinakis.com/](https://glamprinakis.com/) once SSL is configured)
+
+## GitHub Actions Deploy
+
+A workflow in `.github/workflows/deploy.yml` automatically rebuilds and redeploys the frontend UI on every push to `main`, without SSH.
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and fill in:
+
+- `DB_PASSWORD` — MySQL root password
+- `JWT_SECRET` — secret for JWT signing
+- (Optional) `CORS_ORIGIN` — restrict CORS during development
+
+## Common Commands
+
+| Target            | Description                                  |
+| ----------------- | -------------------------------------------- |
+| `make setup`      | Copy `.env.example` → `.env`                 |
+| `make build`      | Build React static bundle (frontend‑builder) |
+| `make up`         | Start prod stack (nginx, backend, db)        |
+| `make down`       | Stop and remove containers                   |
+| `make logs`       | Tail logs for proxy, backend, and db         |
+| `make ssh-tunnel` | SSH‑tunnel to phpMyAdmin (`localhost:8000`)  |
+
+---
+
+## License
+
+MIT © Glamprinakis
+
