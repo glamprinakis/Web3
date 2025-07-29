@@ -1,0 +1,40 @@
+# .github/workflows/deploy.yml
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          port: ${{ secrets.DEPLOY_PORT }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd ~/Web3
+            git fetch --all
+            git reset --hard origin/main
+            echo "🔨 Building React static assets…"
+            docker compose -f docker-compose.prod.yml run --rm frontend-builder
+            echo "🚀 Restarting Nginx with new bundle…"
+            docker compose -f docker-compose.prod.yml up -d --build proxy
+            echo "✅ UI deployed. (Backend unchanged)"
+
+      - name: Clean up SSH agent
+        if: always()
+        run: sudo pkill ssh-agent || true
