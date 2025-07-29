@@ -44,7 +44,7 @@ export default function Contact(){
                         <h4>ΣΤΟΙΧΕΙΑ ΕΠΙΚΟΙΝΩΝΙΑΣ</h4>
                         <span className="mt-3 d-flex">
                             <div className="fw-bold me-2">Διεύθυνση:</div> 
-                            Μαργαροπούλου 20 Α, 54629 Θεσσαλονίκη
+                            Καραϊσκάκη 82, 731 35 Χανιά 
                         </span>
                         <span className="mt-3 d-flex">
                             <div className="fw-bold me-2">Email:</div> 
@@ -52,11 +52,11 @@ export default function Contact(){
                         </span>
                         <span className="mt-3 d-flex">
                             <div className="fw-bold me-2">Τηλέφωνο:</div> 
-                            6948042634
+                            +30 694 804 2634
                         </span>
                         <span className="mt-3 d-flex">
                             <div className="fw-bold me-2">Fax:</div> 
-                            2310-201633                    
+                            28210-434 2634                   
                         </span>
                         <span className="mt-3 fw-bold"> 
                             Ωράριο Λειτουργίας: 

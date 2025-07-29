@@ -8,16 +8,16 @@ function Footer() {
 		<footer className="footer-distributed border-top" style={{marginTop: '7.5rem'}}>
 			<div className="footer-left">
 				<h3>Lamprinakis<span>-Eshop</span>.</h3>
-				<p className="footer-company-name">Lamprinakis-Eshop © 2023</p>
+				<p className="footer-company-name">Lamprinakis-Eshop © 2025</p>
 			</div>
 			<div className="footer-center">
 				<div>
 					<i className="bi bi-pin-map"></i>
-					<p>Δημ. Μαργαροπούλου 20<br />Θεσσαλονίκη 546 29</p>
+					<p>Καραϊσκάκη 82<br />Χανια 73100</p>
 				</div>
 				<div>
 					<i className="bi bi-phone"></i>
-					<p>+30 6948042634</p>
+					<p>+30 694 804 2634</p>
 				</div>
 				<div>
 					<i className="bi bi-envelope"></i>
@@ -26,15 +26,21 @@ function Footer() {
 			</div>
 			<div className="footer-right">
 				<p className="footer-company-about">
-					<span>Η εταιρία μας</span>
-					H εταιρεία Vision Studio δημιουργήθηκε το 2003 στη Θεσσαλονίκη με βασικό αντικείμενο και προσανατολισμό το σχεδιασμό και την ανάπτυξη ιστοσελίδων
+					<span>Η ιστοσελίδα μου</span>
+					Αυτή η ιστοσελίδα δημιουργήθηκε στο πλαίσιο προσωπικής εξάσκησης και εξέλιξης σε σύγχρονες τεχνολογίες ανάπτυξης εφαρμογών. Περιλαμβάνει πλήρως λειτουργικό e‑commerce σύστημα βασισμένο σε React, Node.js, MySQL και phpMyAdmin, με containerization μέσω Docker, Nginx με SSL, και αυτόματες αναπτύξεις (CI/CD) με GitHub Actions. Η υποδομή φιλοξενείται σε AWS EC2 και εξελίσσεται με πρακτικές Infrastructure as Code (IaC).
 				</p>
 				<div className="footer-icons">
-					<Link to="#"><i className="bi bi-facebook"></i></Link>
-					<Link to="#"><i className="bi bi-twitter"></i></Link>
-					<Link to="#"><i className="bi bi-linkedin"></i></Link>
-					<Link to="#"><i className="bi bi-github"></i></Link>
+				<a href="https://www.linkedin.com/in/georgios-lamprinakis/" target="_blank" rel="noopener noreferrer">
+					<i className="bi bi-linkedin"></i>
+				</a>
+				<a href="https://github.com/glamprinakis" target="_blank" rel="noopener noreferrer">
+					<i className="bi bi-github"></i>
+				</a>
+				<a href="tel:+306948042634">
+					<i className="bi bi-telephone"></i>
+				</a>
 				</div>
+
 			</div>
 		</footer>
 	)

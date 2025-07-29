@@ -66,7 +66,7 @@ function Navbar(){
             <nav className="navbar navbar-expand-lg border-bottom border-secondary sticky-top bg-body">
                 <div className="container-fluid">
                     <Link tabIndex={-1} to="/" className="navbar-logo">
-                        <span>Vision</span><span style={{color: '#2A7423 '}}>Studio</span>.
+                        <span>Lamprinakis</span><span style={{color: '#2A7423 '}}>Eshop</span>.
                     </Link>
                 </div>
 
