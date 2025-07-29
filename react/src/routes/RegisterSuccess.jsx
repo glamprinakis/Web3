@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 
 import BreadCrumb from '../components/BreadCrumb';
@@ -6,23 +6,7 @@ import BreadCrumb from '../components/BreadCrumb';
 import '../assets/styles/Login.css';
 import image from '../assets/images/image 5.png'
 
-function Login(){
-
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    
-    const handleChangeEmail = (event) => {
-        setEmail(event.target.value);
-    };
-    const handleChangePassword = (event) => {
-        setPassword(event.target.value);
-    };
-    const handleLogin = async () => {
-        if(email === "test" && password === "test"){
-            localStorage.setItem('loggedIn', "true")
-            localStorage.setItem('username', "eieronymakis")
-        }
-    }
+function RegisterSuccess(){
 
     return(
         <div className="login">
@@ -43,7 +27,7 @@ function Login(){
                 </div>
                 <div className="right d-flex align-items-center justify-content-center">
                     <Link to="/login" className="register-success-login btn btn-lg fs-1 border border-5 border-light">
-                        <i class="bi bi-person-arms-up me-3"></i>
+                        <i className="bi bi-person-arms-up me-3"></i>
                         Σύνδεση
                     </Link>
                 </div>
@@ -52,4 +36,4 @@ function Login(){
     )
 }
 
-export default Login;
+export default RegisterSuccess;

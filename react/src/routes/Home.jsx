@@ -42,9 +42,10 @@ function Home(){
             </div>
             <ProductCarousel title="Δημοφιλή προϊόντα" products={
                 items.map(p => ({
-                    "img": p.image_url || "https://via.placeholder.com/300x300",
+                    "img": p.image || "https://via.placeholder.com/300x300",
                     "name": p.name,
-                    "id": p.pid
+                    "pid": p.pid,
+                    "price": p.price
                 }))
             }/>
             <div className="w-100 ms-auto me-auto categories-title">
@@ -78,9 +79,10 @@ function Home(){
             </div>
             <ProductCarousel title="Νέα προϊόντα" products={
                 items.slice(0, 5).map(p => ({
-                    "img": p.image_url || "https://via.placeholder.com/300x300",
+                    "img": p.image || "https://via.placeholder.com/300x300",
                     "name": p.name,
-                    "id": p.pid
+                    "pid": p.pid,
+                    "price": p.price
                 }))
             }/>
         </div>

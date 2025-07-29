@@ -11,10 +11,9 @@ function Product(){
     const [num, setNum] = useState(0);
 
     useEffect(() => {
-        // If you have an endpoint for single product, use it.
-        // Otherwise fetch all and filter, or adjust to your API shape.
-        api.get('/products')
-            .then(res => setProduct(res.data.find(p => String(p.pid) === String(pid))))
+        // Use the new individual product endpoint
+        api.get(`/products/id/${pid}`)
+            .then(res => setProduct(res.data))
             .catch(console.error);
     }, [pid]);
 
@@ -49,7 +48,7 @@ function Product(){
             <div className="mt-4 d-flex ms-auto me-auto product-container">
                 <div className="left h-100 d-flex justify-content-end">
                     <div className="product-card d-flex justify-content-center align-items-center border border-3">
-                        <img alt="" src={product.image_url || "https://via.placeholder.com/300x300"}></img>
+                        <img alt="" src={product.image || "https://via.placeholder.com/300x300"}></img>
                     </div>
                 </div>
                 <div className="right h-100">

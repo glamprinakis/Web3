@@ -19,10 +19,15 @@ export const getProductById = (id) => api.get(`/products/id/${id}`).then(r => r.
 export const addToCart = (data) => api.post('/carts', data).then(r => r.data);
 export const loginUser = async (data) => {
   const response = await api.post('/user/login', data);
-  const { token, uid, username } = response.data;
+  const { token } = response.data;
   localStorage.setItem('token', token);
-  localStorage.setItem('uid', uid);
-  localStorage.setItem('username', username);
+  
+  // Decode JWT to get user info
+  const {jwtDecode} = await import('jwt-decode');
+  const decoded = jwtDecode(token);
+  localStorage.setItem('uid', decoded.userId);
+  localStorage.setItem('username', decoded.userName);
+  
   return response.data;
 };
 export const registerUser = (data) => api.post('/user/signup', data);

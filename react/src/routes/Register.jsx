@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from '../api';
 import BreadCrumb from '../components/BreadCrumb';
 
@@ -13,6 +13,7 @@ function Register(){
     });
     const [password2, setPassword2] = useState('');
     const [passwordError, setPasswordError] = useState(false);
+    const navigate = useNavigate();
 
     const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -34,7 +35,7 @@ function Register(){
         }
         try {
             await api.post('/user/signup', form);
-            alert('User created! You can log in now.');
+            navigate('/register-success');
         } catch (e) {
             alert('Failed to sign up (maybe username/email already exists)');
         }

@@ -80,6 +80,20 @@ app.get('/products/:cat', async (req, res) => {
   }
 });
 
+// Get single product by ID
+app.get('/products/id/:pid', async (req, res) => {
+  try {
+    const { pid } = req.params;
+    const rows = await q('SELECT * FROM products WHERE pid = ?', [pid]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    res.json(rows[0]);
+  } catch (e) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // ========== Carts ==========
 app.get('/carts/:cartId', async (req, res) => {
   try {

@@ -17,11 +17,16 @@ function Login(){
         e.preventDefault();
         try {
             const { data } = await api.post('/user/login', { usr, pwd });
-            // backend returns: { token }
+            // Store the token
             localStorage.setItem('token', data.token);
-            // if your backend also returns uid/username, store them; if not, store separately after a user
-            // localStorage.setItem('uid', data.uid);
-            navigate('/'); // or wherever
+            
+            // Decode the JWT token to get user information
+            const decoded = jwtDecode(data.token);
+            localStorage.setItem('uid', decoded.userId);
+            localStorage.setItem('username', decoded.userName);
+            
+            // Redirect to profile page
+            navigate('/profile');
         } catch (e) {
             alert('Wrong username or password');
         }
