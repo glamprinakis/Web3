@@ -36,6 +36,9 @@ export default function Category(){
     };
 
     useEffect(() => {
+        // Scroll to top when component mounts or categoryId changes
+        window.scrollTo(0, 0);
+        
         if (!categoryId) return;
         api.get(`/products/${encodeURIComponent(categoryId)}`)
             .then(res => {
