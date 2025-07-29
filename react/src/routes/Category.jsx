@@ -11,7 +11,7 @@ export default function Category(){
     let {categoryId} = useParams();
     const [value, setValue] = React.useState([0, 8000]);
     function valuetext() {
-        return `${value}$`;
+        /*...*/
     }
     const handleChange = (event, newValue) => {
       setValue(newValue);
@@ -20,6 +20,20 @@ export default function Category(){
 
     const [data, setData] = useState([]);
     const [filtered, setFiltered] = useState([]);
+
+    // Function to get display name for category
+    const getCategoryDisplayName = (categoryId) => {
+        const categoryMap = {
+            'laptops': 'Laptops',
+            'tablets': 'Tablets',
+            'monitors': 'Οθόνες',
+            'desktops': 'Desktops & Servers',
+            'hardware': 'Hardware',
+            'peripherals': 'Περιφερειακά',
+            'networking': 'Δικτυακά'
+        };
+        return categoryMap[categoryId] || categoryId;
+    };
 
     useEffect(() => {
         if (!categoryId) return;
@@ -78,7 +92,10 @@ export default function Category(){
     return(
         <div className="category-page w-100">
             <BreadCrumb 
-                items={[{"path":"/categories","label":"Κατηγορίες"}, {"path":"/categories/laptops","label":"Laptops"}]}>
+                items={[
+                    {"path":"/categories","label":"Κατηγορίες"}, 
+                    {"path":`/categories/${categoryId}`,"label":getCategoryDisplayName(categoryId)}
+                ]}>
             </BreadCrumb>
             <div className="mt-3 w-100 d-flex align-items-center justify-content-center">
                 <div className="category-search-bar d-flex border border border-secondary">

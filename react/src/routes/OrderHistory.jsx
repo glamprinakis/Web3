@@ -1,79 +1,235 @@
 import React, { useState, useEffect } from "react";
 import { api } from '../api';
-import Navbar from "../components/Navbar";
 import BreadCrumb from '../components/BreadCrumb';
-import Footer from '../components/Footer';
-import TableRow from '../laz/components/Cart/TableRow'
 import '../laz/laz.css'
 import '../laz/pages/Cart.css'
-import { products_cart } from '../laz/dummys/cart'
-
 import '../assets/styles/OrderHistory.css';
 
-const styles = {
-    checkoutSection: {
-        boxShadow: '3px 3px 3px 0px rgba(0, 0, 0, 0.05)', borderRadius: '10px', background: '#F8F8F8',
-        padding: '20px', margin: '2rem'
-    },
-    inputDefault: {
-        height: '49px', padding: '20px 10px', flexWrap: 'wrap',
-        border: '1px solid #D9D9D9'
-    },
-    inputLabel: { display: 'flex', flexDirection: 'row', gap: '1rem', flexWrap: 'wrap', justifyContent: 'space-evenly', paddingBottom: '0.8rem' },
-    classLabel: { paddingBottom: '0.4rem' },
-    textStyle: { color: '#3A3A3A', fontSize: '16px', fontStyle: 'normal', lineHeight: '22.08px', letterSpacing: '0.48px' },
-    productsLayout: {
-        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', alignContent: 'flex-start',
-        rowGap: '10px', flexWrap: 'wrap'
-    }
-}
-
 function OrderHistory() {
-    const uid = localStorage.getItem('uid'); // however you store it
-    const [orders, setOrders] = useState([]);
-    const [lines, setLines] = useState([]);
+    const uid = localStorage.getItem('uid');
+    const [orderGroups, setOrderGroups] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!uid) return;
-        api.get(`/users/${uid}/orders`)
-            .then(res => setOrders(res.data)) // array of { totalOrderId }
-            .catch(console.error);
+        
+        const fetchOrderHistory = async () => {
+            try {
+                // Get all unique order IDs
+                const ordersRes = await api.get(`/users/${uid}/orders`);
+                const orderIds = ordersRes.data;
+
+                // Fetch detailed information for each order
+                const orderGroupsData = await Promise.all(
+                    orderIds.map(async (order) => {
+                        const orderDetails = await api.get(`/orders/${order.totalOrderId}/products`);
+                        
+                        // Get product details for each order item
+                        const orderItemsWithProducts = await Promise.all(
+                            orderDetails.data.map(async (item) => {
+                                try {
+                                    const productRes = await api.get(`/products/id/${item.pid}`);
+                                    return {
+                                        ...item,
+                                        product: productRes.data
+                                    };
+                                } catch (error) {
+                                    return {
+                                        ...item,
+                                        product: {
+                                            name: 'Product Not Found',
+                                            image: 'https://via.placeholder.com/300x300',
+                                            pid: item.pid
+                                        }
+                                    };
+                                }
+                            })
+                        );
+
+                        // Calculate total for this order
+                        const totalCost = orderItemsWithProducts.reduce((sum, item) => 
+                            sum + (item.orderCost || 0), 0
+                        );
+
+                        return {
+                            totalOrderId: order.totalOrderId,
+                            orderDate: orderItemsWithProducts[0]?.orderDate || new Date(),
+                            items: orderItemsWithProducts,
+                            totalCost: totalCost
+                        };
+                    })
+                );
+
+                // Sort by date (most recent first)
+                orderGroupsData.sort((a, b) => new Date(b.orderDate) - new Date(a.orderDate));
+                setOrderGroups(orderGroupsData);
+            } catch (error) {
+                console.error('Error fetching order history:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOrderHistory();
     }, [uid]);
 
-    const openOrder = async (totalOrderId) => {
-        const { data } = await api.get(`/orders/${totalOrderId}/products`);
-        setLines(data); // render in UI
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('el-GR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
+    const getOrderStatus = () => {
+        // For now, we'll show all orders as delivered since we don't have status in DB
+        return 'Παραδόθηκε';
+    };
+
+    if (loading) {
+        return (
+            <div className="order-history-container">
+                <BreadCrumb
+                    items={[{ "path": "/order-history", "label": "Παραγγελίες" }]}>
+                </BreadCrumb>
+                <div className="text-center mt-5">
+                    <div className="spinner-border text-success" role="status">
+                        <span className="visually-hidden">Φόρτωση...</span>
+                    </div>
+                    <p className="mt-3">Φόρτωση παραγγελιών...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="login">
+        <div className="order-history-container">
             <BreadCrumb
                 items={[{ "path": "/order-history", "label": "Παραγγελίες" }]}>
             </BreadCrumb>
 
-            <br></br><br></br>
-
-            <div className="page-title text-center">
-                <h4><b><u>ΙΣΤΟΡΙΚΟ ΠΑΡΑΓΓΕΛΙΩΝ</u></b></h4>
+            <div className="page-title text-center mt-4 mb-5">
+                <h2 className="fw-bold text-success">ΙΣΤΟΡΙΚΟ ΠΑΡΑΓΓΕΛΙΩΝ</h2>
+                <p className="text-muted">Δείτε όλες τις παλαιότερες παραγγελίες σας</p>
             </div>
 
-            <br></br>
+            {orderGroups.length === 0 ? (
+                <div className="empty-orders text-center mt-5">
+                    <div className="empty-icon mb-3">
+                        <i className="bi bi-bag-x fs-1 text-muted"></i>
+                    </div>
+                    <h4 className="text-muted mb-3">Δεν υπάρχουν παραγγελίες</h4>
+                    <p className="text-muted">Δεν έχετε κάνει καμία παραγγελία ακόμη.</p>
+                    <a href="/categories/laptops" className="btn btn-success mt-3">
+                        Ξεκινήστε τις αγορές σας
+                    </a>
+                </div>
+            ) : (
+                orderGroups.map((orderGroup) => (
+                    <section key={orderGroup.totalOrderId} className='order-section container section-75rem mb-5'>
+                        {/* Order Header */}
+                        <div className="order-header bg-light p-3 rounded-top border">
+                            <div className="row">
+                                <div className="col-md-3">
+                                    <small className="text-muted">ΠΑΡΑΓΓΕΛΙΑ</small>
+                                    <div className="fw-bold">#{orderGroup.totalOrderId}</div>
+                                </div>
+                                <div className="col-md-3">
+                                    <small className="text-muted">ΗΜΕΡΟΜΗΝΙΑ</small>
+                                    <div>{formatDate(orderGroup.orderDate)}</div>
+                                </div>
+                                <div className="col-md-3">
+                                    <small className="text-muted">ΣΥΝΟΛΟ</small>
+                                    <div className="fw-bold text-success">{orderGroup.totalCost.toFixed(2)}€</div>
+                                </div>
+                                <div className="col-md-3">
+                                    <small className="text-muted">ΚΑΤΑΣΤΑΣΗ</small>
+                                    <div>
+                                        <span className="badge bg-success">{getOrderStatus()}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-            <h2>Orders</h2>
-            <ul>
-                {orders.map(o => (
-                    <li key={o.totalOrderId}>
-                        {o.totalOrderId} <button onClick={() => openOrder(o.totalOrderId)}>View</button>
-                    </li>
-                ))}
-            </ul>
+                        {/* Order Items */}
+                        <div className='order-items bg-white border border-top-0 rounded-bottom'>
+                            <div className='screen'>
+                                <table className="table table-borderless mb-0">
+                                    <thead className="border-bottom">
+                                        <tr>
+                                            <th className="py-3">ΠΡΟΙΟΝ</th>
+                                            <th className="py-3">ΠΟΣΟΤΗΤΑ</th>
+                                            <th className="py-3">ΤΙΜΗ ΜΟΝΑΔΑΣ</th>
+                                            <th className="py-3">ΣΥΝΟΛΟ</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {orderGroup.items.map((item, index) => (
+                                            <tr key={index} className="border-bottom">
+                                                <td className="py-3">
+                                                    <div className='img-info-cart'>
+                                                        <div className='image-cart'>
+                                                            <img 
+                                                                src={item.product.image || "https://via.placeholder.com/300x300"} 
+                                                                alt={item.product.name}
+                                                                style={{width: '60px', height: '60px', objectFit: 'contain'}}
+                                                            />
+                                                        </div>
+                                                        <div className='name-price-cart ms-3'>
+                                                            <div className="fw-bold">{item.product.name}</div>
+                                                            <small className="text-muted">SKU: {item.product.product_code || item.pid}</small>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-3">
+                                                    <span className="badge bg-secondary">{item.orderAmount}</span>
+                                                </td>
+                                                <td className="py-3">
+                                                    <span>{(item.orderCost / item.orderAmount).toFixed(2)}€</span>
+                                                </td>
+                                                <td className="py-3">
+                                                    <span className="fw-bold text-success">{item.orderCost.toFixed(2)}€</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-            <h3>Items</h3>
-            <ul>
-                {lines.map((l, i) => <li key={i}>{l.pid} x {l.orderAmount}</li>)}
-            </ul>
+                            {/* Mobile View */}
+                            <div className='mobile' style={{display: 'none'}}>
+                                <div className="p-3">
+                                    {orderGroup.items.map((item, index) => (
+                                        <div key={index} className="mobile-order-item border-bottom py-3">
+                                            <div className="d-flex align-items-center mb-2">
+                                                <img 
+                                                    src={item.product.image || "https://via.placeholder.com/300x300"} 
+                                                    alt={item.product.name}
+                                                    style={{width: '50px', height: '50px', objectFit: 'contain'}}
+                                                    className="me-3"
+                                                />
+                                                <div className="flex-grow-1">
+                                                    <div className="fw-bold">{item.product.name}</div>
+                                                    <small className="text-muted">SKU: {item.product.product_code || item.pid}</small>
+                                                </div>
+                                            </div>
+                                            <div className="d-flex justify-content-between">
+                                                <span>Ποσότητα: <span className="badge bg-secondary">{item.orderAmount}</span></span>
+                                                <span className="fw-bold text-success">{item.orderCost.toFixed(2)}€</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                ))
+            )}
         </div>
-    )
+    );
 }
 
 export default OrderHistory;
