@@ -21,7 +21,7 @@ const products = [
     {
       "name": "Lenovo Thinkpad E14 Gen 3 (14\" AMD)",
       "price": 1509.75,
-      "image": "https://www.lenovo.com/medias/lenovo-laptops-thinkpad-e-series-e14-gen3-amd-hero.png?context=bWFzdGVyfHJvb3R8MzI1MDI2fGltYWdlL3BuZ3xoMTAvaDAxLzE0MTA2OTI4MzgxOTgyLnBuZ3wwNWVkMTUzOGE0ZGNhOTNmMjNhYzJhYTZkNzdhMzAyNmE1ZmRkYTc4MWVlMzk1ODAwNTA0ZmQ1ZmUxYzBlNmI2",
+      "image": "https://a.scdn.gr/images/sku_main_images/057667/57667059/xlarge_20241127102146_lenovo_thinkpad_e14_gen_6_amd_14_ips_fhd_ryzen_5_7535hs_16gb_512gb_ssd_w11_pro_us_keyboard.jpeg",
       "brand": "Lenovo",
       "category": "laptops",
       "stock": 5,
@@ -30,7 +30,7 @@ const products = [
     {
       "name": "Lenovo Thinkpad L14",
       "price": 2021.25,
-      "image": "https://www.lenovo.com/medias/lenovo-laptop-thinkpad-l15-intel-hero.png?context=bWFzdGVyfHJvb3R8MzgxMTU4fGltYWdlL3BuZ3xoMDMvaGM5LzE0MzIyOTk4OTAyODE0LnBuZ3xkNTExOTkzODA2NzViZGQwOTY1NDg5NDkzMWViYTFiYjMwMTk5ZWQyM2M5MDg5YzkwOTUwZDdhMjI3NGRiOGM2",
+      "image": "https://lenovostore.gr/media/products/heroes/262-94-LVPNL14AL/262-94-LVPNL14AL.jpg",
       "brand": "Lenovo",
       "category": "laptops",
       "stock": 0,
@@ -62,24 +62,6 @@ const products = [
       "category": "laptops",
       "stock": 12,
       "product_code":"f0058a1d65"
-    },
-    {
-      "name": "Lenovo ThinkPad E15 Gen 4 (Windows 11 Pro)",
-      "price": 1299.99,
-      "image": "https://via.placeholder.com/400x300/000000/FFFFFF?text=ThinkPad+E15+Gen4",
-      "brand": "Lenovo",
-      "category": "laptops",
-      "stock": 8,
-      "product_code":"tp_e15_gen4"
-    },
-    {
-      "name": "Lenovo ThinkPad T14s Gen 3 (Windows 11 Pro)",
-      "price": 1899.99,
-      "image": "https://via.placeholder.com/400x300/000000/FFFFFF?text=ThinkPad+T14s+Gen3",
-      "brand": "Lenovo",
-      "category": "laptops",
-      "stock": 6,
-      "product_code":"tp_t14s_gen3"
     }
   ]
 
