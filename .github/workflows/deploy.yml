@@ -60,7 +60,8 @@ jobs:
             git reset --hard origin/main
 
             echo "🧱 Building full stack (frontend, proxy, backend)..."
-            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
 
             echo "🧹 Cleaning up old Docker resources..."
             # Remove dangling images (untagged images from previous builds)
