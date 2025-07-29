@@ -1,0 +1,151 @@
+name: 🗄️ Export Database from Server
+
+on:
+  # Manual trigger - you can run this anytime from GitHub Actions tab
+  workflow_dispatch:
+    inputs:
+      commit_message:
+        description: 'Commit message for database export'
+        required: false
+        default: '🗄️ Auto-export database from server'
+      
+  # Optional: Auto-export weekly (remove if you don't want this)
+  schedule:
+    - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+
+env:
+  # Database connection settings
+  DB_HOST: ${{ secrets.DB_HOST }}
+  DB_USER: ${{ secrets.DB_USER }}  
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_NAME: ${{ secrets.DB_NAME }}
+
+jobs:
+  export-database:
+    name: Export Database
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 📥 Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: 📦 Install MySQL client
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y mysql-client
+        
+    - name: 🔍 Test database connection
+      run: |
+        echo "Testing connection to database..."
+        mysql -h${{ env.DB_HOST }} -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -e "SELECT 'Connection successful' as status;" ${{ env.DB_NAME }}
+        
+    - name: 🗄️ Export full database
+      run: |
+        echo "Exporting database structure and data..."
+        mysqldump -h${{ env.DB_HOST }} -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} \
+          --single-transaction \
+          --routines \
+          --triggers \
+          --add-drop-table \
+          --add-locks \
+          --extended-insert=FALSE \
+          --complete-insert \
+          ${{ env.DB_NAME }} > db/lamprinakis_eshop_exported.sql
+          
+    - name: 🎨 Format exported SQL (human-readable)
+      run: |
+        echo "Creating human-readable version..."
+        cat > format_sql.js << 'EOF'
+        const fs = require('fs');
+        
+        let sql = fs.readFileSync('db/lamprinakis_eshop_exported.sql', 'utf8');
+        
+        // Add human-readable comments for products
+        sql = sql.replace(
+          /INSERT INTO `products`/g,
+          '\n-- Product Entry\nINSERT INTO `products`'
+        );
+        
+        // Format long URLs on new lines
+        sql = sql.replace(
+          /(https?:\/\/[^\s,)]+)/g,
+          '\n  \'$1\''
+        );
+        
+        // Add export timestamp
+        const timestamp = new Date().toISOString();
+        sql = `-- Database exported from live server on ${timestamp}\n-- Via GitHub Actions\n\n${sql}`;
+        
+        fs.writeFileSync('db/lamprinakis_eshop_exported.sql', sql);
+        console.log('✅ SQL formatted successfully');
+        EOF
+        
+        node format_sql.js
+        
+    - name: 📊 Export products summary
+      run: |
+        echo "Creating products summary..."
+        mysql -h${{ env.DB_HOST }} -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} ${{ env.DB_NAME }} \
+          -e "SELECT 
+                COUNT(*) as total_products,
+                category,
+                brand,
+                COUNT(*) as count
+              FROM products 
+              GROUP BY category, brand 
+              ORDER BY category, brand;" \
+          > db/products_summary.txt
+          
+        echo "📦 Products Summary:" >> db/products_summary.txt
+        echo "Generated on: $(date)" >> db/products_summary.txt
+        
+    - name: 🔄 Check for changes
+      id: changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        if git diff --quiet db/; then
+          echo "changes=false" >> $GITHUB_OUTPUT
+          echo "No changes detected in database"
+        else
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "Changes detected in database"
+        fi
+        
+    - name: 💾 Commit and push changes
+      if: steps.changes.outputs.changes == 'true'
+      run: |
+        git add db/
+        git commit -m "${{ github.event.inputs.commit_message || '🗄️ Auto-export database from server' }}"
+        git push
+        
+    - name: 📋 Create summary comment
+      if: steps.changes.outputs.changes == 'true'
+      run: |
+        echo "## 🗄️ Database Export Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Successfully exported database from live server**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Changes:" >> $GITHUB_STEP_SUMMARY
+        echo "- Updated \`db/lamprinakis_eshop_exported.sql\`" >> $GITHUB_STEP_SUMMARY
+        echo "- Updated \`db/products_summary.txt\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Files updated:" >> $GITHUB_STEP_SUMMARY
+        git diff --name-only HEAD~1 HEAD | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+        
+    - name: 🎉 No changes notification
+      if: steps.changes.outputs.changes == 'false'
+      run: |
+        echo "## 🗄️ Database Export Complete" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Database export successful**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "ℹ️ No changes detected - database is up to date" >> $GITHUB_STEP_SUMMARY
