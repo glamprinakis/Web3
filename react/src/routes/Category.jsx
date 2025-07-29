@@ -224,7 +224,7 @@ export default function Category(){
                     <div className="grid-container mt-5">
                     {filtered.map((item, index) => (
                         item.stock <= 0 ? 
-                            <Link key={index} to="/product" className="semi-visible grid-item d-flex align-items-center flex-column text-dark">
+                            <Link key={index} to={`/product/${item.pid || item.id}`} className="semi-visible grid-item d-flex align-items-center flex-column text-dark">
                                 <div className="bg-danger text-light product-out-of-stock d-flex border border-2 border-body align-items-center">
                                     Εξαντλήθηκε <div className="ms-2 fs-4">🤷</div>
                                 </div> 
@@ -235,8 +235,14 @@ export default function Category(){
                                 </div>
                             </Link>
                             :
-                            <Link key={index} to="/product" className="grid-item d-flex align-items-center flex-column text-dark">
-                                <button type="button" className="btn add-to-cart bi bi-cart-fill"></button>
+                            <Link key={index} to={`/product/${item.pid || item.id}`} className="grid-item d-flex align-items-center flex-column text-dark">
+                                <button type="button" className="btn add-to-cart bi bi-cart-fill" 
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        // Add to cart logic here
+                                        console.log('Add to cart:', item);
+                                    }}
+                                ></button>
                                 <img src={item.image} alt="" />
                                 <span>{item.name}</span>
                                 <div className="d-flex w-100 justify-content-center">

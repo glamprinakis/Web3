@@ -28,7 +28,7 @@ function App() {
         </Route>
         <Route path="/login" element={<Login />}>
         </Route>
-        <Route path="/product" element={<Product/>}>
+        <Route path="/product/:pid" element={<Product/>}>
         </Route>
         <Route path="/categories/:categoryId" element={<Category/>}>
         </Route>

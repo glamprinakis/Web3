@@ -48,12 +48,23 @@ function Navbar(){
     }
 
     const [categoriesVisible, setCategoriesVisible] = useState(false)
+    const [contactVisible, setContactVisible] = useState(false)
 
     const showHideCategories = () => {
         if(categoriesVisible){
             setCategoriesVisible(false)
         }else{
             setCategoriesVisible(true)
+            setContactVisible(false) // Close contact when opening categories
+        }
+    }
+
+    const showHideContact = () => {
+        if(contactVisible){
+            setContactVisible(false)
+        }else{
+            setContactVisible(true)
+            setCategoriesVisible(false) // Close categories when opening contact
         }
     }
 
@@ -85,12 +96,16 @@ function Navbar(){
                         </button>
                     }
 
-                    <Link  className="nav-link me-5 d-flex align-items-center justify-content-center">
-                        <span className="d-flex align-items-center tag">ΣΧΕΤΙΚΑ ΜΕ ΕΜΑΣ</span>
-                    </Link>
-                    <Link to="/contact" className="nav-link d-flex align-items-center justify-content-center">
-                        <span className="d-flex align-items-center tag">ΕΠΙΚΟΙΝΩΝΙΑ</span>
-                    </Link>
+                    {contactVisible &&
+                        <button type="button" onClick={showHideContact} className="contact-visible nav-link btn dropdown-toggle d-flex justify-content-center align-items-center">
+                            <span className="d-flex align-items-center tag">ΕΠΙΚΟΙΝΩΝΙΑ</span>
+                        </button>
+                    }
+                    {!contactVisible &&
+                        <button type="button" onClick={showHideContact} className="nav-link btn dropdown-toggle d-flex justify-content-center align-items-center">
+                            <span className="d-flex align-items-center tag">ΕΠΙΚΟΙΝΩΝΙΑ</span>
+                        </button>
+                    }
                 </div>
                 <div className="me-2">
                     <SearchOverlay></SearchOverlay>
@@ -186,6 +201,49 @@ function Navbar(){
                             <i className="bi bi-plus-circle"></i>
                             <span className="ms-2">Περισσότερα</span>
                         </Link>
+                    </div>
+                </div>   
+            }
+
+            {contactVisible &&
+                <div className="w-100 contact-nav">
+                    <div className="contact-info d-flex flex-row justify-content-center align-items-start border-bottom border-secondary bg-body p-4">
+                        <div className="contact-section me-5">
+                            <h6 className="text-success fw-bold mb-3">📍 ΔΙΕΥΘΥΝΣΗ</h6>
+                            <p className="mb-2">Καραϊσκάκη 82</p>
+                            <p className="mb-0">Χανιά 73100</p>
+                        </div>
+                        <div className="contact-section me-5">
+                            <h6 className="text-success fw-bold mb-3">📞 ΕΠΙΚΟΙΝΩΝΙΑ</h6>
+                            <p className="mb-2">
+                                <i className="bi bi-telephone me-2"></i>
+                                <a href="tel:+306948042634" className="text-decoration-none">+30 694 804 2634</a>
+                            </p>
+                            <p className="mb-0">
+                                <i className="bi bi-envelope me-2"></i>
+                                <a href="mailto:info@lamprinakis-eshop.gr" className="text-decoration-none">info@lamprinakis-eshop.gr</a>
+                            </p>
+                        </div>
+                        <div className="contact-section me-5">
+                            <h6 className="text-success fw-bold mb-3">🕒 ΩΡΑΡΙΟ</h6>
+                            <p className="mb-1 small">Δευ-Τετ-Παρ: 10:00-16:00</p>
+                            <p className="mb-1 small">Τρι-Πεμ-Παρ: 10:00-20:00</p>
+                            <p className="mb-0 small">Σάββατο: 10:00-15:00</p>
+                        </div>
+                        <div className="contact-section">
+                            <h6 className="text-success fw-bold mb-3">🔗 SOCIAL</h6>
+                            <div className="d-flex">
+                                <a href="https://www.linkedin.com/in/georgios-lamprinakis/" target="_blank" rel="noopener noreferrer" className="me-3 text-decoration-none">
+                                    <i className="bi bi-linkedin fs-4 text-primary"></i>
+                                </a>
+                                <a href="https://github.com/glamprinakis" target="_blank" rel="noopener noreferrer" className="text-decoration-none">
+                                    <i className="bi bi-github fs-4 text-dark"></i>
+                                </a>
+                            </div>
+                            <Link to="/contact" className="btn btn-sm btn-outline-success mt-2" onClick={() => setContactVisible(false)}>
+                                Αναλυτικά Στοιχεία
+                            </Link>
+                        </div>
                     </div>
                 </div>   
             }

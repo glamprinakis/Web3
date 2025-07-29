@@ -1,4 +1,5 @@
 import React, {useRef, useState} from "react";
+import { Link } from "react-router-dom";
 import Slider from 'react-slick'
 
 import '../assets/styles/ProductCarousel.css'
@@ -13,7 +14,17 @@ export default function ProductCarousel(props) {
     if(props.products){
         nodes = props.products.map(product => 
             <div key={product.img} className="product-carousel-product-card">
-                <img alt="" src={product.img}></img>
+                <Link to={`/product/${product.pid || product.id}`} className="text-decoration-none">
+                    <img alt={product.name || 'Product'} src={product.img}></img>
+                    {product.name && (
+                        <div className="product-info mt-2 text-center">
+                            <h6 className="text-dark mb-1">{product.name}</h6>
+                            {product.price && (
+                                <p className="text-success fw-bold mb-0">€{product.price}</p>
+                            )}
+                        </div>
+                    )}
+                </Link>
             </div>
         )
     }
