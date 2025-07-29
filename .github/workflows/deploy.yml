@@ -1,41 +1,73 @@
-# .github/workflows/deploy.yml
-name: Deploy to EC2
+name: CI & Deploy to EC2
 
 on:
   push:
     branches: [ main ]
 
 jobs:
-  deploy:
+  # ─── 1) Run your tests ─────────────────────────────────────────────────────
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [node, react]
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Setup SSH key
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-          ssh-passphrase:  ${{ secrets.SSH_PASSPHRASE }}
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with: { node-version: '20' }
 
-      - name: Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          port: ${{ secrets.DEPLOY_PORT }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
+      - name: Install & test `${{ matrix.dir }}`
+        working-directory: ${{ matrix.dir }}
+        run: |
+          npm install
+          npm test
+
+  # ─── 2) Deploy only if tests pass ─────────────────────────────────────────
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # ——— 2.1 Write the SSH key to disk —————————————————————
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      # ——— 2.2 Add your EC2 host to known_hosts —————————————————————
+      - name: Add EC2 to known_hosts
+        run: |
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      # ——— 2.3 Deploy your code to EC2 —————————————————————
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=yes \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            
             set -e
             cd ~/Web3
+
+            echo "🔄 Pulling latest code from GitHub..."
             git fetch --all
             git reset --hard origin/main
-            echo "🔨 Building React static assets…"
-            docker compose -f docker-compose.prod.yml run --rm frontend-builder
-            echo "🚀 Restarting Nginx with new bundle…"
-            docker compose -f docker-compose.prod.yml up -d --build proxy
-            echo "✅ UI deployed. (Backend unchanged)"
 
-      - name: Clean up SSH agent
-        if: always()
-        run: sudo pkill ssh-agent || true
+            echo "🧱 Building full stack (frontend, proxy, backend)..."
+            docker compose -f docker-compose.prod.yml up -d --build
+
+            echo "⏳ Waiting for health check..."
+            sleep 5
+            if ! curl -sf http://localhost/api/health; then
+              echo "❌ Health check failed!"
+              exit 1
+            fi
+
+            echo "✅ Deployment complete and healthy!"
+          EOF

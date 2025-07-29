@@ -253,6 +253,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'Message From Express Backend!' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
+// Only start the server if this file is run directly (not imported by tests)
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server listening on ${PORT}`);
+  });
+}
+
+module.exports = app;
