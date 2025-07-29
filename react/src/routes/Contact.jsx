@@ -48,11 +48,11 @@ export default function Contact(){
                         </span>
                         <span className="mt-3 d-flex">
                             <div className="fw-bold me-2">Email:</div> 
-                            info@visionstudio.gr
+                            info@lamprinakis-eshop.gr
                         </span>
                         <span className="mt-3 d-flex">
                             <div className="fw-bold me-2">Τηλέφωνο:</div> 
-                            2310-202026
+                            6948042634
                         </span>
                         <span className="mt-3 d-flex">
                             <div className="fw-bold me-2">Fax:</div> 

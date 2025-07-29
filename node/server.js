@@ -9,7 +9,7 @@ const app = express();
 const DB_HOST = process.env.DB_HOST || 'db';
 const DB_USER = process.env.DB_USER || 'root';
 const DB_PASSWORD = process.env.DB_PASSWORD || '';
-const DB_NAME = process.env.DB_NAME || 'visionstudio';
+const DB_NAME = process.env.DB_NAME || 'lamprinakis_eshop';
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-in-prod';
 

@@ -37,7 +37,7 @@ function Login(){
                                 🥳 Επιτυχής Εγγραφή
                             </div>
                             <div className="mt-3 text-warning w-50 text-center fw-bold fs-5 ms-auto me-auto">
-                                Ευχαριστούμε για την εγγραφή σας στο VisionStudio
+                                Ευχαριστούμε για την εγγραφή σας στο Lamprinakis-Eshop
                             </div>
                         </div>
                 </div>

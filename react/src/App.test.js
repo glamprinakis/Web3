@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders VisionStudio app', () => {
+test('renders Lamprinakis-Eshop app', () => {
   render(<App />);
-  const logoElement = screen.getByText(/VisionStudio © 2023/i);
+  const logoElement = screen.getByText(/Lamprinakis-Eshop © 2023/i);
   expect(logoElement).toBeInTheDocument();
 });

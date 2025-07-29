@@ -5,7 +5,7 @@ const dbConfig = {
   host: '172.20.0.7',
   user: 'root',
   password: 'xyz123',
-  database: 'visionstudio',
+  database: 'lamprinakis_eshop',
 };
 
 const products = [

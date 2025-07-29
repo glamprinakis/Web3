@@ -7,8 +7,8 @@ function Footer() {
 	return (
 		<footer className="footer-distributed border-top" style={{marginTop: '7.5rem'}}>
 			<div className="footer-left">
-				<h3>Vision<span>Studio</span>.</h3>
-				<p className="footer-company-name">VisionStudio © 2023</p>
+				<h3>Lamprinakis<span>-Eshop</span>.</h3>
+				<p className="footer-company-name">Lamprinakis-Eshop © 2023</p>
 			</div>
 			<div className="footer-center">
 				<div>
@@ -17,11 +17,11 @@ function Footer() {
 				</div>
 				<div>
 					<i className="bi bi-phone"></i>
-					<p>+30 23102 02026</p>
+					<p>+30 6948042634</p>
 				</div>
 				<div>
 					<i className="bi bi-envelope"></i>
-					<p><Link to="mailto:info@visionstudio.gr">info@visionstudio.gr</Link></p>
+					<p><Link to="mailto:info@lamprinakis-eshop.gr">info@lamprinakis-eshop.gr</Link></p>
 				</div>
 			</div>
 			<div className="footer-right">
