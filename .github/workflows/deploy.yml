@@ -82,4 +82,14 @@ jobs:
             echo "✅ Deployment complete and healthy!"
             echo "📊 Docker space usage after cleanup:"
             docker system df
+            
+            # Send success notification (optional)
+            echo "🎉 Deployment successful at $(date)"
           EOF
+
+      # ——— 2.4 Notify on failure —————————————————————
+      - name: Notify on deployment failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Check the logs above for details."
+          # You could add Slack/Discord webhook here later
