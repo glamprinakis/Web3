@@ -62,6 +62,16 @@ jobs:
             echo "🧱 Building full stack (frontend, proxy, backend)..."
             docker compose -f docker-compose.prod.yml up -d --build
 
+            echo "🧹 Cleaning up old Docker resources..."
+            # Remove dangling images (untagged images from previous builds)
+            docker image prune -f
+            # Remove stopped containers
+            docker container prune -f
+            # Remove unused networks
+            docker network prune -f
+            # Remove unused volumes (be careful with this one!)
+            docker volume prune -f
+
             echo "⏳ Waiting for health check..."
             sleep 5
             if ! curl -sf http://localhost/api/health; then
@@ -70,4 +80,6 @@ jobs:
             fi
 
             echo "✅ Deployment complete and healthy!"
+            echo "📊 Docker space usage after cleanup:"
+            docker system df
           EOF
