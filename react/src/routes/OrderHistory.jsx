@@ -270,27 +270,6 @@ function OrderHistory() {
                                 ))}
                             </div>
                         </div>
-
-                        {/* Order Total */}
-                        <div className='cart-down section-5rem'>
-                            <p style={{fontSize: '30px'}}>ΣΥΝΟΛΟ ΠΑΡΑΓΓΕΛΙΑΣ</p>
-                            <table>
-                                <tbody>
-                                    <tr>
-                                        <td>ΑΞΙΑ ΠΡΟΙΟΝΤΩΝ</td>
-                                        <td className='number'>{orderGroup.totalCost.toFixed(2)}€</td>
-                                    </tr>
-                                    <tr>
-                                        <td>ΜΕΤΑΦΟΡΙΚΑ</td>
-                                        <td className='number'>5.00€</td>
-                                    </tr>
-                                    <tr style={{borderTop: '3px solid #727272'}}>
-                                        <td>ΣΥΝΟΛΟ</td>
-                                        <td className='number'>{(orderGroup.totalCost + 5.00).toFixed(2)}€</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
                     </section>
                 ))
             )}

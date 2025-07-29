@@ -14,8 +14,8 @@ function Header(){
             // First click - go to contact page
             navigate('/contact');
         } else {
-            // Second click - go to main site
-            window.location.href = 'https://glamprinakis.com';
+            // Second click - go back to home page smoothly
+            navigate('/');
         }
         
         // Toggle the state for next click
