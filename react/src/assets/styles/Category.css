@@ -140,8 +140,10 @@
 }
 
 .grid-item img{
-    max-width: 80%;
-    max-height: 80%;
+    max-width: 75%;
+    max-height: 75%;
+    object-fit: contain;
+    object-position: center;
     transition: 0.2s;
 }
 

@@ -14,13 +14,15 @@ export default function ProductCarousel(props) {
     if(props.products){
         nodes = props.products.map(product => 
             <div key={product.img} className="product-carousel-product-card">
-                <Link to={`/product/${product.pid || product.id}`} className="text-decoration-none">
-                    <img alt={product.name || 'Product'} src={product.img}></img>
+                <Link to={`/product/${product.pid || product.id}`} className="text-decoration-none d-flex flex-column h-100">
+                    <div className="product-image-container d-flex justify-content-center align-items-center flex-grow-1">
+                        <img alt={product.name || 'Product'} src={product.img}></img>
+                    </div>
                     {product.name && (
-                        <div className="product-info mt-2 text-center">
-                            <h6 className="text-dark mb-1">{product.name}</h6>
+                        <div className="product-info mt-2 text-center px-2">
+                            <h6 className="text-dark mb-1 small">{product.name}</h6>
                             {product.price && (
-                                <p className="text-success fw-bold mb-0">€{product.price}</p>
+                                <p className="text-success fw-bold mb-0 small">€{product.price}</p>
                             )}
                         </div>
                     )}

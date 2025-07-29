@@ -30,6 +30,8 @@
 .similar-products-card img{
     max-width: 70%;
     max-height: 70%;
+    object-fit: contain;
+    object-position: center;
     transition: 0.2s;
 }
 
@@ -51,6 +53,8 @@
 .product-container .left img{
     max-height: 80%;
     max-width: 80%;
+    object-fit: contain;
+    object-position: center;
     transition: 0.2s;
 }
 

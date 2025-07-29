@@ -62,6 +62,24 @@ const products = [
       "category": "laptops",
       "stock": 12,
       "product_code":"f0058a1d65"
+    },
+    {
+      "name": "Lenovo ThinkPad E15 Gen 4 (Windows 11 Pro)",
+      "price": 1299.99,
+      "image": "https://via.placeholder.com/400x300/000000/FFFFFF?text=ThinkPad+E15+Gen4",
+      "brand": "Lenovo",
+      "category": "laptops",
+      "stock": 8,
+      "product_code":"tp_e15_gen4"
+    },
+    {
+      "name": "Lenovo ThinkPad T14s Gen 3 (Windows 11 Pro)",
+      "price": 1899.99,
+      "image": "https://via.placeholder.com/400x300/000000/FFFFFF?text=ThinkPad+T14s+Gen3",
+      "brand": "Lenovo",
+      "category": "laptops",
+      "stock": 6,
+      "product_code":"tp_t14s_gen3"
     }
   ]
 

@@ -25,6 +25,9 @@ function Login(){
             localStorage.setItem('uid', decoded.userId);
             localStorage.setItem('username', decoded.userName);
             
+            // Trigger a custom event to notify other components
+            window.dispatchEvent(new Event('storage'));
+            
             // Redirect to profile page
             navigate('/profile');
         } catch (e) {

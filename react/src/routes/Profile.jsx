@@ -41,6 +41,8 @@ function Profile(){
         localStorage.removeItem('token');
         localStorage.removeItem('uid');
         localStorage.removeItem('username');
+        // Trigger storage event to update navbar
+        window.dispatchEvent(new Event('storage'));
         window.location.href = '/';
     };
 

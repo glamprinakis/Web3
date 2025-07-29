@@ -13,18 +13,50 @@ function Navbar(){
     const setStoredTheme = theme => localStorage.setItem('theme', theme)
 
     const handleLogout = async() => {
+        localStorage.removeItem('token')
         localStorage.removeItem('username')
-        localStorage.removeItem('userId')
+        localStorage.removeItem('uid')
+        setLoggedIn(false)
+        setUsername("")
+        // Trigger storage event to update other components
+        window.dispatchEvent(new Event('storage'));
         window.location.href = "/";
     }
 
     useEffect(() => {
         let username = localStorage.getItem('username');
-        let userId = localStorage.getItem('userId');
-        if(username){
+        let uid = localStorage.getItem('uid');
+        let token = localStorage.getItem('token');
+        if(username && uid && token){
             setUsername(username)
             setLoggedIn(true)
         }
+    }, []);
+
+    // Listen for storage changes to update login state
+    useEffect(() => {
+        const handleStorageChange = () => {
+            let username = localStorage.getItem('username');
+            let uid = localStorage.getItem('uid');
+            let token = localStorage.getItem('token');
+            if(username && uid && token){
+                setUsername(username)
+                setLoggedIn(true)
+            } else {
+                setLoggedIn(false)
+                setUsername("")
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        
+        // Also check on component mount and when localStorage changes
+        const interval = setInterval(handleStorageChange, 1000);
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            clearInterval(interval);
+        };
     }, []); 
 
     useEffect(() => {
@@ -173,7 +205,7 @@ function Navbar(){
             {categoriesVisible &&
                 <div className="w-100 category-nav">
                     <div className="menu d-flex flex-row justify-content-center align-items-center border-bottom border-secondary bg-body">
-                        <Link className="menu-item bg-transparent btn p-0" to="/desktops">
+                        <Link className="menu-item bg-transparent btn p-0" to="/categories/desktops">
                             <i className="bi bi-pc-display"></i>
                             <span className="ms-2">Desktops</span>
                         </Link>
@@ -181,23 +213,23 @@ function Navbar(){
                             <i className="bi bi-laptop"></i>
                             <span className="ms-2">Laptops</span>
                         </Link>
-                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/tablets">
+                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/categories/tablets">
                             <i className="bi bi-tablet-landscape"></i>
                             <span className="ms-2">Tablets</span>
                         </Link>
-                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/hardware">
+                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/categories/hardware">
                             <i className="bi bi-cpu"></i>
                             <span className="ms-2">Hardware</span>
                         </Link>
-                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/consoles">
+                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/categories/peripherals">
                             <i className="bi bi-keyboard"></i>
                             <span className="ms-2">Περιφερειακά</span>
                         </Link>
-                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/networking">
+                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/categories/networking">
                             <i className="bi bi-router"></i>
                             <span className="ms-2">Δικτυακά</span>
                         </Link>
-                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/categories">
+                        <Link className="ms-5 menu-item bg-transparent btn p-0" to="/categories/monitors">
                             <i className="bi bi-plus-circle"></i>
                             <span className="ms-2">Περισσότερα</span>
                         </Link>
