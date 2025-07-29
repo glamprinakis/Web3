@@ -50,6 +50,7 @@ services:
   # MySQL (private)
   db:
     image: mysql:8
+    restart: unless-stopped  
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: visionstudio
