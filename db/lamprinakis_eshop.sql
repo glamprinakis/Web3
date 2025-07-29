@@ -86,14 +86,63 @@ CREATE TABLE `products` (
 -- Dumping data for table `products`
 --
 
+-- ===================================================
+-- PRODUCTS DATA - Human Readable Format
+-- ===================================================
+
+-- Monitor Products
+-- -----------------
 INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
-(2, 'LG 24MP60G-B IPS Gaming Monitor', 'LG45656', 'monitors', 'LG', 26, 'https://a.scdn.gr/images/sku_main_images/030067/30067365/20210719094314_lg_24mp60g_b_monitor_23_8_fhd.jpeg', 129.00),
-(16, 'Dell Vostro 3000', '5f039b4ef00', 'laptops', 'Dell', 10, 'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/vostro-notebooks/15-3510/media-gallery/archive/dv3510nt_cnb_05000ff090_bk.psd?fmt=png-alpha&pscan=auto&scl=1&hei=402&wid=606&qlt=100,1&resMode=sharp2&size=606,402&chrss=full', 1032.50),
-(17, 'Lenovo Thinkpad E14 Gen 3 (14\" AMD)', '08389ddsa32', 'laptops', 'Lenovo', 5, 'https://www.lenovo.com/medias/lenovo-laptops-thinkpad-e-series-e14-gen3-amd-hero.png?context=bWFzdGVyfHJvb3R8MzI1MDI2fGltYWdlL3BuZ3xoMTAvaDAxLzE0MTA2OTI4MzgxOTgyLnBuZ3wwNWVkMTUzOGE0ZGNhOTNmMjNhYzJhYTZkNzdhMzAyNmE1ZmRkYTc4MWVlMzk1ODAwNTA0ZmQ1ZmUxYzBlNmI2', 1509.75),
-(18, 'Lenovo Thinkpad L14', '39b4ef0058a1', 'laptops', 'Lenovo', 0, 'https://p1-ofp.static.pub//fes/cms/2024/03/28/ta57bq9kngsriro2kaa70k1an7e4r0691074.png', 2021.25),
-(19, 'Lenovo Thinkpad X1 Carbon', '58a1d652f13d', 'laptops', 'Lenovo', 8, 'https://p3-ofp.static.pub//fes/cms/2024/07/05/umcrxcnsm2br1itju6gvundeb9s6tf364734.png', 1256.80),
-(20, 'Apple Macbook Pro M2', 'f6b45d89e', 'laptops', 'Apple', 0, 'https://images.macrumors.com/t/MwgTEggiztXrvIN2l8bZny1f93M=/1600x/article-new/2013/09/2023-macbook-pro-transparent.png', 1675.20),
-(21, 'Apple Macbook Air M2', 'f0058a1d65', 'laptops', 'Apple', 12, 'https://images.macrumors.com/t/AI0UfpE0Io0I3yfew8TtFUxyi3s=/800x0/smart/article-new/2013/09/macbook-air-m2-roundup-header.png?lossy', 926.75);
+(2, 'LG 24MP60G-B IPS Gaming Monitor', 'LG45656', 'monitors', 'LG', 26, 
+ 'https://a.scdn.gr/images/sku_main_images/030067/30067365/20210719094314_lg_24mp60g_b_monitor_23_8_fhd.jpeg', 
+ 129.00);
+
+-- Laptop Products
+-- ---------------
+
+-- Dell Laptops
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(16, 'Dell Vostro 3000', '5f039b4ef00', 'laptops', 'Dell', 10, 
+ 'https://i.dell.com/is/image/DellContent/content/dam/ss2/product-images/dell-client-products/notebooks/vostro-notebooks/15-3510/media-gallery/archive/dv3510nt_cnb_05000ff090_bk.psd?fmt=png-alpha&pscan=auto&scl=1&hei=402&wid=606&qlt=100,1&resMode=sharp2&size=606,402&chrss=full', 
+ 1032.50);
+
+-- Lenovo ThinkPad Laptops
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(17, 'Lenovo Thinkpad E14 Gen 3 (14" AMD)', '08389ddsa32', 'laptops', 'Lenovo', 5, 
+ 'https://www.lenovo.com/medias/lenovo-laptops-thinkpad-e-series-e14-gen3-amd-hero.png?context=bWFzdGVyfHJvb3R8MzI1MDI2fGltYWdlL3BuZ3xoMTAvaDAxLzE0MTA2OTI4MzgxOTgyLnBuZ3wwNWVkMTUzOGE0ZGNhOTNmMjNhYzJhYTZkNzdhMzAyNmE1ZmRkYTc4MWVlMzk1ODAwNTA0ZmQ1ZmUxYzBlNmI2', 
+ 1509.75);
+
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(18, 'Lenovo Thinkpad L14', '39b4ef0058a1', 'laptops', 'Lenovo', 0, 
+ 'https://p1-ofp.static.pub//fes/cms/2024/03/28/ta57bq9kngsriro2kaa70k1an7e4r0691074.png', 
+ 2021.25);
+
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(19, 'Lenovo Thinkpad X1 Carbon', '58a1d652f13d', 'laptops', 'Lenovo', 8, 
+ 'https://p3-ofp.static.pub//fes/cms/2024/07/05/umcrxcnsm2br1itju6gvundeb9s6tf364734.png', 
+ 1256.80);
+
+-- Apple MacBook Laptops
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(20, 'Apple Macbook Pro M2', 'f6b45d89e', 'laptops', 'Apple', 0, 
+ 'https://images.macrumors.com/t/MwgTEggiztXrvIN2l8bZny1f93M=/1600x/article-new/2013/09/2023-macbook-pro-transparent.png', 
+ 1675.20);
+
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(21, 'Apple Macbook Air M2', 'f0058a1d65', 'laptops', 'Apple', 12, 
+ 'https://images.macrumors.com/t/AI0UfpE0Io0I3yfew8TtFUxyi3s=/800x0/smart/article-new/2013/09/macbook-air-m2-roundup-header.png?lossy', 
+ 926.75);
+
+-- New ThinkPad Models (with local images)
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(22, 'Lenovo ThinkPad E15 Gen 4 (Windows 11 Pro)', 'tp_e15_gen4', 'laptops', 'Lenovo', 8, 
+ '/static/media/Lenovo Thinkpad E14 Gen 3.png', 
+ 1299.99);
+
+INSERT INTO `products` (`pid`, `name`, `product_code`, `category`, `brand`, `stock`, `image`, `price`) VALUES
+(23, 'Lenovo ThinkPad T14s Gen 3 (Windows 11 Pro)', 'tp_t14s_gen3', 'laptops', 'Lenovo', 6, 
+ '/static/media/Lenovo Thinkpad L14.png', 
+ 1899.99);
 
 -- --------------------------------------------------------
 

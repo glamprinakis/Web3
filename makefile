@@ -5,7 +5,7 @@ stop:
 bash:
 	sudo docker exec -it ${id} /bin/bash
 db:
-	sudo docker exec -i ${id} mysql -uroot -pxyz123 lamprinakis_eshop < ./lamprinakis_eshop.sql
+	sudo docker exec -i ${id} mysql -uroot -pxyz123 visionstudio < ./visionstudio.sql
 down:
 	sudo docker compose down
 restart:
