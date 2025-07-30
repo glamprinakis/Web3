@@ -1,101 +1,131 @@
 # 🗄️ Database Export via GitHub Actions
 
-This GitHub Action allows you to automatically export your live database from the server and save it to your repository.
+This GitHub Action processes your database exports and manages them automatically.
 
 ## 🚀 Setup Instructions
 
-### 1. Add Secrets to GitHub Repository
+### Method 1: Server Push (Recommended)
 
-Go to your repository → Settings → Secrets and Variables → Actions, and add these secrets:
+On your server, export the database and push it to a special branch:
 
+```bash
+# Export database
+mysqldump -u root -p --single-transaction --routines --triggers lamprinakis_eshop > lamprinakis_eshop.sql
+
+# Navigate to your repo clone on server
+cd /path/to/your/repo
+
+# Create/switch to database updates branch
+git checkout -B database-updates
+
+# Copy the exported file
+cp /path/to/lamprinakis_eshop.sql db/lamprinakis_eshop.sql
+
+# Commit and push
+git add db/lamprinakis_eshop.sql
+git commit -m "🗄️ Database export - $(date)"
+git push origin database-updates
 ```
-DB_HOST=your.server.ip.address (e.g., 1.2.3.4)
-DB_USER=root
-DB_PASSWORD=xyz123
-DB_NAME=lamprinakis_eshop
-```
 
-### 2. How to Use
+**The GitHub Action will automatically:**
+- Detect the push to `database-updates` branch
+- Analyze the database file
+- Merge changes to `main` branch
+- Create a summary report
 
-#### Manual Export (Recommended)
-1. Go to **Actions** tab in your GitHub repository
-2. Click **"🗄️ Export Database from Server"**
-3. Click **"Run workflow"**
-4. Optionally add a custom commit message
+### Method 2: Manual Upload
+
+1. Export your database: `mysqldump -u root -p lamprinakis_eshop > lamprinakis_eshop.sql`
+2. Place the file in the `db/` folder of your repository
+3. Go to **Actions** tab → **"🗄️ Process Database Export"**
+4. Click **"Run workflow"**
 5. Click **"Run workflow"** button
 
-#### Automatic Export (Optional)
-- The action runs every Sunday at 2 AM UTC automatically
-- Remove the `schedule` section in the workflow file if you don't want this
+## 🎯 Workflow Features
 
-### 3. What It Does
+✅ **Automatic processing** - Triggered by pushes to `database-updates` branch  
+✅ **File validation** - Checks database file integrity  
+✅ **Smart merging** - Automatically merges to main branch  
+✅ **Analysis reports** - Creates database statistics  
+✅ **Error handling** - Clear feedback on issues  
+✅ **Branch management** - Keeps branches in sync  
+## 📁 Files Created/Updated
 
-✅ **Connects to your live server database**  
-✅ **Exports complete database structure and data**  
-✅ **Creates human-readable SQL format**  
-✅ **Generates products summary**  
-✅ **Commits changes to repository automatically**  
-✅ **Only commits if there are actual changes**  
+- `db/lamprinakis_eshop.sql` - Your main database export
+- `db/database_summary.md` - Analysis and statistics report
 
-### 4. Files Created/Updated
+## 🔧 Server Setup (One-time)
 
-- `db/lamprinakis_eshop_exported.sql` - Complete database export
-- `db/products_summary.txt` - Summary of products by category/brand
+Create this script on your server for easy database exports:
 
-## 🎯 Workflow
+```bash
+#!/bin/bash
+# save as: export-db.sh
 
-### When You Add Products via phpMyAdmin:
+DB_NAME="lamprinakis_eshop"
+REPO_PATH="/path/to/your/repo"  # Change this to your repo path
 
-1. **Add products** through phpMyAdmin on your server
-2. **Go to GitHub Actions** tab
-3. **Run the export workflow** manually
-4. **Products are automatically saved** to your repository
-5. **Deploy** using your normal process
+echo "🗄️ Exporting database..."
 
-### Benefits:
+# Navigate to repo
+cd "$REPO_PATH"
 
-- ✅ **One-click export** from GitHub web interface
-- ✅ **No server access needed** - runs from GitHub
-- ✅ **Automatic backups** - everything saved in git
-- ✅ **Team collaboration** - everyone gets latest data
-- ✅ **Change tracking** - see what changed over time
-- ✅ **Safe deployments** - never lose data again
+# Create/switch to database branch
+git checkout main
+git pull origin main
+git checkout -B database-updates
 
-## 🔧 Advanced Usage
+# Export database
+mysqldump -u root -p --single-transaction --routines --triggers "$DB_NAME" > db/lamprinakis_eshop.sql
 
-### Custom Commit Messages
-When running manually, you can add custom commit messages like:
-- "Added new laptop products"
-- "Updated product prices"
-- "Monthly product backup"
-
-### Scheduling
-The workflow can run automatically. Current schedule:
-- **Every Sunday at 2 AM UTC**
-
-To change the schedule, edit the `cron` value in the workflow file:
-```yaml
-schedule:
-  - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+# Check if export was successful
+if [ $? -eq 0 ]; then
+    echo "✅ Database exported successfully"
+    
+    # Commit and push
+    git add db/lamprinakis_eshop.sql
+    git commit -m "🗄️ Database export - $(date '+%Y-%m-%d %H:%M:%S')"
+    git push origin database-updates
+    
+    echo "🚀 Database pushed to GitHub"
+    echo "🔄 GitHub Actions will process automatically"
+else
+    echo "❌ Database export failed"
+fi
 ```
 
-### Security
-- Database credentials are stored as encrypted GitHub secrets
-- Only repository collaborators can run the action
-- All activity is logged in Actions tab
+Make it executable: `chmod +x export-db.sh`
+
+## 🎮 Usage Examples
+
+### Quick Export from Server
+```bash
+./export-db.sh
+```
+
+### After Adding Products in phpMyAdmin
+1. Run the export script: `./export-db.sh`
+2. Check GitHub Actions tab to see processing
+3. Database automatically merges to main branch
 
 ## 🆘 Troubleshooting
 
-### Connection Issues
-- Verify your server allows external MySQL connections
-- Check that your secrets are correctly set
-- Ensure your server firewall allows GitHub Actions IPs
+### Workflow Fails
+- Check that `db/lamprinakis_eshop.sql` exists and is not empty
+- Ensure the file contains valid MySQL dump data
+- Check the Actions tab for detailed error messages
 
-### No Changes Detected
-- This is normal if no data has changed since last export
-- The action only commits when there are actual differences
+### File Not Found
+- Make sure you're placing the export in the `db/` folder
+- File should be named exactly `lamprinakis_eshop.sql`
 
-### Large Databases
-- The action handles large databases efficiently
-- Uses single-transaction export for consistency
-- Formats output for better readability
+### Merge Conflicts
+- The workflow handles automatic merging
+- If conflicts occur, manually resolve and push to `database-updates` branch
+
+## 🔒 Security Benefits
+
+✅ **No database credentials in GitHub** - Export happens on your server  
+✅ **Secure file transfer** - Uses Git's secure protocols  
+✅ **Access control** - Only repo collaborators can trigger workflows  
+✅ **Audit trail** - All changes tracked in Git history

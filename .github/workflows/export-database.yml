@@ -1,4 +1,4 @@
-name: 🗄️ Export Database from Server
+name: 🗄️ Process Database Export
 
 on:
   workflow_dispatch:
@@ -6,22 +6,29 @@ on:
       commit_message:
         description: 'Commit message for database export'
         required: false
-        default: '🗄️ Auto-export database from server'
-      
-  # Optional: Auto-export weekly (remove if you don't want this)
-  #schedule:
-  #  - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+        default: '🗄️ Database update from server'
+      export_method:
+        description: 'Export method'
+        required: true
+        default: 'server_push'
+        type: choice
+        options:
+        - server_push
+        - webhook_trigger
+  
+  # Trigger when database file is pushed to a specific branch
+  push:
+    branches:
+      - database-updates
+    paths:
+      - 'db/lamprinakis_eshop.sql'
 
 env:
-  # Database connection settings
-  DB_HOST: ${{ secrets.DB_HOST }}
-  DB_USER: ${{ secrets.DB_USER }}  
-  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-  DB_NAME: ${{ secrets.DB_NAME }}
+  DB_NAME: lamprinakis_eshop
 
 jobs:
-  export-database:
-    name: Export Database
+  process-database:
+    name: Process Database Export
     runs-on: ubuntu-latest
     
     steps:
@@ -29,122 +36,212 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 2  # Fetch last 2 commits to see changes
         
     - name: 🔧 Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         
-    - name: 📦 Install MySQL client
+    - name: 📦 Install MySQL client (for analysis)
       run: |
         sudo apt-get update
         sudo apt-get install -y mysql-client
         
-    - name: 🔍 Test database connection
+    - name: 🔍 Check for database file
+      id: check_db
       run: |
-        echo "Testing connection to database..."
-        mysql -h${{ env.DB_HOST }} -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -e "SELECT 'Connection successful' as status;" ${{ env.DB_NAME }}
-        
-    - name: 🗄️ Export full database
-      run: |
-        echo "Exporting database structure and data..."
-        mysqldump -h${{ env.DB_HOST }} -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} \
-          --single-transaction \
-          --routines \
-          --triggers \
-          --add-drop-table \
-          --add-locks \
-          --extended-insert=FALSE \
-          --complete-insert \
-          ${{ env.DB_NAME }} > db/lamprinakis_eshop_exported.sql
+        if [ -f "db/lamprinakis_eshop.sql" ]; then
+          echo "database_exists=true" >> $GITHUB_OUTPUT
+          echo "✅ Database file found"
           
-    - name: 🎨 Format exported SQL (human-readable)
+          # Check file size and basic validation
+          file_size=$(stat -c%s "db/lamprinakis_eshop.sql")
+          echo "Database file size: ${file_size} bytes"
+          
+          if [ $file_size -gt 1000 ]; then
+            echo "database_valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Database file appears valid (size: ${file_size} bytes)"
+          else
+            echo "database_valid=false" >> $GITHUB_OUTPUT
+            echo "❌ Database file too small, may be corrupted"
+          fi
+        else
+          echo "database_exists=false" >> $GITHUB_OUTPUT
+          echo "❌ No database file found at db/lamprinakis_eshop.sql"
+        fi
+        
+    - name: 🎨 Format and analyze database
+      if: steps.check_db.outputs.database_exists == 'true' && steps.check_db.outputs.database_valid == 'true'
       run: |
-        echo "Creating human-readable version..."
-        cat > format_sql.js << 'EOF'
+        echo "Processing database file..."
+        
+        # Create analysis script
+        cat > analyze_db.js << 'EOF'
         const fs = require('fs');
         
-        let sql = fs.readFileSync('db/lamprinakis_eshop_exported.sql', 'utf8');
+        console.log('📊 Analyzing database export...');
         
-        // Add human-readable comments for products
-        sql = sql.replace(
-          /INSERT INTO `products`/g,
-          '\n-- Product Entry\nINSERT INTO `products`'
-        );
+        if (!fs.existsSync('db/lamprinakis_eshop.sql')) {
+          console.error('❌ Database file not found');
+          process.exit(1);
+        }
         
-        // Format long URLs on new lines
-        sql = sql.replace(
-          /(https?:\/\/[^\s,)]+)/g,
-          '\n  \'$1\''
-        );
+        const sql = fs.readFileSync('db/lamprinakis_eshop.sql', 'utf8');
         
-        // Add export timestamp
-        const timestamp = new Date().toISOString();
-        sql = `-- Database exported from live server on ${timestamp}\n-- Via GitHub Actions\n\n${sql}`;
+        // Basic validation
+        if (!sql.includes('CREATE TABLE') && !sql.includes('INSERT INTO')) {
+          console.error('❌ Database file appears to be invalid (no tables or data found)');
+          process.exit(1);
+        }
         
-        fs.writeFileSync('db/lamprinakis_eshop_exported.sql', sql);
-        console.log('✅ SQL formatted successfully');
+        // Count products
+        const productInserts = sql.match(/INSERT INTO `products`/g) || [];
+        const productCount = productInserts.length;
+        
+        // Count users
+        const userInserts = sql.match(/INSERT INTO `users`/g) || [];
+        const userCount = userInserts.length;
+        
+        // Count orders
+        const orderInserts = sql.match(/INSERT INTO `orders`/g) || [];
+        const orderCount = orderInserts.length;
+        
+        // Create summary
+        const summary = `# 📊 Database Analysis Summary
+        
+Generated: ${new Date().toISOString()}
+
+## 📈 Statistics
+- **Products**: ${productCount} entries
+- **Users**: ${userCount} entries  
+- **Orders**: ${orderCount} entries
+- **File Size**: ${Math.round(fs.statSync('db/lamprinakis_eshop.sql').size / 1024)} KB
+
+## 🔍 Recent Changes
+This export was processed automatically via GitHub Actions.
+
+## 📝 File Information
+- Source: Server database export
+- Format: MySQL dump
+- Encoding: UTF-8
+        `;
+        
+        // Write summary
+        fs.writeFileSync('db/database_summary.md', summary);
+        
+        // Add timestamp to SQL file if it doesn't have one
+        if (!sql.includes('-- Exported on:')) {
+          const timestampedSql = `-- Database exported from server\n-- Processed on: ${new Date().toISOString()}\n-- Via GitHub Actions\n\n${sql}`;
+          fs.writeFileSync('db/lamprinakis_eshop.sql', timestampedSql);
+        }
+        
+        console.log('✅ Database analysis complete');
+        console.log(`📦 Found ${productCount} products, ${userCount} users, ${orderCount} orders`);
         EOF
         
-        node format_sql.js
-        
-    - name: 📊 Export products summary
-      run: |
-        echo "Creating products summary..."
-        mysql -h${{ env.DB_HOST }} -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} ${{ env.DB_NAME }} \
-          -e "SELECT 
-                COUNT(*) as total_products,
-                category,
-                brand,
-                COUNT(*) as count
-              FROM products 
-              GROUP BY category, brand 
-              ORDER BY category, brand;" \
-          > db/products_summary.txt
-          
-        echo "📦 Products Summary:" >> db/products_summary.txt
-        echo "Generated on: $(date)" >> db/products_summary.txt
-        
+        node analyze_db.js
     - name: 🔄 Check for changes
       id: changes
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         
-        if git diff --quiet db/; then
+        # Check if this is a push from database-updates branch
+        if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/database-updates" ]; then
+          echo "📝 Processing database update from server"
+          echo "changes=true" >> $GITHUB_OUTPUT
+          echo "source=server_push" >> $GITHUB_OUTPUT
+        elif git diff --quiet db/; then
           echo "changes=false" >> $GITHUB_OUTPUT
-          echo "No changes detected in database"
+          echo "ℹ️ No changes detected in database"
         else
           echo "changes=true" >> $GITHUB_OUTPUT
-          echo "Changes detected in database"
+          echo "source=manual" >> $GITHUB_OUTPUT
+          echo "📝 Changes detected in database"
         fi
         
-    - name: 💾 Commit and push changes
-      if: steps.changes.outputs.changes == 'true'
+    - name: 💾 Merge to main branch (if from database-updates)
+      if: steps.changes.outputs.changes == 'true' && steps.changes.outputs.source == 'server_push'
+      run: |
+        # Switch to main and merge the database updates
+        git checkout main
+        git pull origin main
+        git merge database-updates --no-ff -m "🗄️ Merge database updates from server"
+        git push origin main
+        
+        # Update the database-updates branch to be in sync
+        git checkout database-updates
+        git merge main
+        git push origin database-updates
+        
+        echo "✅ Database updates merged to main branch"
+        
+    - name: 💾 Commit changes (if manual)
+      if: steps.changes.outputs.changes == 'true' && steps.changes.outputs.source == 'manual'
       run: |
         git add db/
-        git commit -m "${{ github.event.inputs.commit_message || '🗄️ Auto-export database from server' }}"
+        git commit -m "${{ github.event.inputs.commit_message || '🗄️ Database update from server' }}"
         git push
         
-    - name: 📋 Create summary comment
+    - name: 📋 Create success summary
       if: steps.changes.outputs.changes == 'true'
       run: |
-        echo "## 🗄️ Database Export Complete" >> $GITHUB_STEP_SUMMARY
+        echo "## 🗄️ Database Processing Complete" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Successfully exported database from live server**" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Successfully processed database export**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Changes:" >> $GITHUB_STEP_SUMMARY
-        echo "- Updated \`db/lamprinakis_eshop_exported.sql\`" >> $GITHUB_STEP_SUMMARY
-        echo "- Updated \`db/products_summary.txt\`" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.changes.outputs.source }}" = "server_push" ]; then
+          echo "### 🔄 Source: Server Push" >> $GITHUB_STEP_SUMMARY
+          echo "- Database was exported from server and pushed to \`database-updates\` branch" >> $GITHUB_STEP_SUMMARY
+          echo "- Changes automatically merged to \`main\` branch" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "### 🔄 Source: Manual Trigger" >> $GITHUB_STEP_SUMMARY
+          echo "- Database processed via manual workflow trigger" >> $GITHUB_STEP_SUMMARY
+        fi
+        
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Files updated:" >> $GITHUB_STEP_SUMMARY
-        git diff --name-only HEAD~1 HEAD | sed 's/^/- /' >> $GITHUB_STEP_SUMMARY
+        echo "### 📁 Files Updated:" >> $GITHUB_STEP_SUMMARY
+        echo "- \`db/lamprinakis_eshop.sql\` - Main database export" >> $GITHUB_STEP_SUMMARY
+        echo "- \`db/database_summary.md\` - Analysis summary" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "db/database_summary.md" ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Database Statistics:" >> $GITHUB_STEP_SUMMARY
+          cat db/database_summary.md | grep -A 10 "## 📈 Statistics" >> $GITHUB_STEP_SUMMARY
+        fi
         
     - name: 🎉 No changes notification
       if: steps.changes.outputs.changes == 'false'
       run: |
-        echo "## 🗄️ Database Export Complete" >> $GITHUB_STEP_SUMMARY
+        echo "## 🗄️ Database Processing Complete" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "✅ **Database export successful**" >> $GITHUB_STEP_SUMMARY
+        echo "✅ **Database processing successful**" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "ℹ️ No changes detected - database is up to date" >> $GITHUB_STEP_SUMMARY
+        
+    - name: ❌ Database file issues
+      if: steps.check_db.outputs.database_exists == 'false' || steps.check_db.outputs.database_valid == 'false'
+      run: |
+        echo "## ❌ Database Processing Failed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Issues detected with database file:**" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ steps.check_db.outputs.database_exists }}" = "false" ]; then
+          echo "- 📁 Database file not found at \`db/lamprinakis_eshop.sql\`" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        if [ "${{ steps.check_db.outputs.database_valid }}" = "false" ]; then
+          echo "- ⚠️ Database file appears to be too small or corrupted" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 How to fix:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Export your database from the server using:" >> $GITHUB_STEP_SUMMARY
+        echo "   \`mysqldump -u root -p lamprinakis_eshop > lamprinakis_eshop.sql\`" >> $GITHUB_STEP_SUMMARY
+        echo "2. Place the file in the \`db/\` folder of your repository" >> $GITHUB_STEP_SUMMARY
+        echo "3. Push to the \`database-updates\` branch or run this workflow again" >> $GITHUB_STEP_SUMMARY
+        
+        exit 1
