@@ -82,11 +82,13 @@ jobs:
 
       # ——— 2.5 Deploy to Terraform-managed EC2 ———————————————————————————————————————————
       - name: Deploy to EC2
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=10 \
-            ubuntu@${{ steps.terraform.outputs.instance_ip }} << 'EOF'
+            ubuntu@${{ steps.terraform.outputs.instance_ip }} "export DB_PASSWORD='${DB_PASSWORD}' && bash -s" << 'EOF'
             
             set -e
             cd ~/Web3
@@ -96,8 +98,29 @@ jobs:
             git reset --hard origin/main
 
             echo "🧱 Building full stack (frontend, proxy, backend)..."
+            
+            # Verify docker-compose file exists
+            if [ ! -f "docker-compose.prod.yml" ]; then
+              echo "❌ docker-compose.prod.yml not found!"
+              ls -la
+              exit 1
+            fi
+            
+            # Check if DB_PASSWORD is available
+            if [ -z "${DB_PASSWORD}" ]; then
+              echo "❌ DB_PASSWORD environment variable is not set!"
+              exit 1
+            fi
+            
+            echo "Stopping existing containers..."
             docker compose -f docker-compose.prod.yml down
+            
+            echo "Starting services..."
             docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
+            
+            # Verify services started
+            echo "Checking if services started:"
+            docker compose -f docker-compose.prod.yml ps
 
             echo "🧹 Cleaning up old Docker resources..."
             docker image prune -f
@@ -107,10 +130,42 @@ jobs:
 
             echo "⏳ Waiting for services to be healthy..."
             
-            # Get the actual container names
-            DB_CONTAINER=$(docker ps --filter "name=db" --format "{{.Names}}")
-            BACKEND_CONTAINER=$(docker ps --filter "name=backend" --format "{{.Names}}")
-            PROXY_CONTAINER=$(docker ps --filter "name=proxy" --format "{{.Names}}")
+            # List all running containers for debugging
+            echo "=== All Running Containers ==="
+            docker ps
+            echo "==========================="
+            
+            # Get the actual container names with more specific filters
+            DB_CONTAINER=$(docker ps --filter "name=web3-db" --format "{{.Names}}")
+            BACKEND_CONTAINER=$(docker ps --filter "name=web3-backend" --format "{{.Names}}")
+            PROXY_CONTAINER=$(docker ps --filter "name=web3-proxy" --format "{{.Names}}")
+            
+            # Verify container existence
+            if [ -z "$DB_CONTAINER" ] || [ -z "$BACKEND_CONTAINER" ] || [ -z "$PROXY_CONTAINER" ]; then
+              echo "❌ Some containers are missing!"
+              echo "Expected containers:"
+              echo "DB: $DB_CONTAINER"
+              echo "Backend: $BACKEND_CONTAINER"
+              echo "Proxy: $PROXY_CONTAINER"
+              
+              echo "=== Container Logs ==="
+              echo "Backend logs:"
+              docker logs web3-backend-1 || echo "No backend logs available"
+              echo "MySQL logs:"
+              docker logs web3-db-1 || echo "No MySQL logs available"
+              echo "Proxy logs:"
+              docker logs web3-proxy-1 || echo "No proxy logs available"
+              
+              echo "=== Environment Check ==="
+              echo "Checking if DB_PASSWORD is set (masked):"
+              if [ -z "${DB_PASSWORD}" ]; then
+                echo "❌ DB_PASSWORD is not set!"
+              else
+                echo "✅ DB_PASSWORD is set"
+              fi
+              
+              exit 1
+            fi
             
             echo "Found containers:"
             echo "DB: $DB_CONTAINER"
