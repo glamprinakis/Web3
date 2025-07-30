@@ -1,8 +1,12 @@
-name: 🚀 CI & Deploy to EC2
+name: 🚀 CI & Deploy to EC2 (DISABLED)
+
+# DISABLED: Using deploy-terraform.yml instead
+# on:
+#   push:
+#     branches: [ main ]
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:  # Manual trigger only
 
 jobs:
   # ─── 1) Run your tests ─────────────────────────────────────────────────────
