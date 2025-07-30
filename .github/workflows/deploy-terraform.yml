@@ -35,14 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # ——— 2.1 Setup Terraform ———————————————————————————————————————————
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-          terraform_wrapper: false  # Important: allows raw output
-
-      # ——— 2.2 Configure AWS credentials ———————————————————————————————————————————
+      # ——— 2.1 Configure AWS credentials ———————————————————————————————————————————
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -50,65 +43,42 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
 
-      # ——— 2.3 Create terraform.tfvars from secrets ———————————————————————————————————————————
-      - name: Create terraform.tfvars
-        run: |
-          cd terraform
-          cat > terraform.tfvars << EOF
-          # Auto-generated from GitHub secrets
-          ssh_public_key = "${{ secrets.SSH_PUBLIC_KEY }}"
-          db_password = "${{ secrets.DB_PASSWORD }}"
-          jwt_secret = "${{ secrets.JWT_SECRET }}"
-          
-          # Configuration
-          aws_region = "eu-west-1"
-          project_name = "ecommerce-app"
-          environment = "production"
-          domain_name = "glamprinakis.com"
-          instance_type = "t3.medium"
-          root_volume_size = 20
-          ssh_allowed_ips = ["0.0.0.0/0"]  # GitHub Actions IPs are dynamic
-          backup_retention_days = 7
-          
-          tags = {
-            Owner       = "Georgios Lamprinakis"
-            Project     = "E-commerce Portfolio"
-            Environment = "Production"
-            DeployedBy  = "GitHub Actions"
-          }
-          EOF
-
-      # ——— 2.4 Get Terraform outputs ———————————————————————————————————————————
-      - name: Get server IP from Terraform
+      # ——— 2.2 Get server IP from AWS (dynamic discovery) ———————————————————————————————————————————
+      - name: Get server IP from AWS
         id: terraform
         run: |
-          cd terraform
-          terraform init
+          # Find EC2 instance by tags (created by Terraform)
+          INSTANCE_IP=$(aws ec2 describe-instances \
+            --region eu-west-1 \
+            --filters \
+              "Name=tag:Project,Values=ecommerce-app" \
+              "Name=tag:Environment,Values=production" \
+              "Name=instance-state-name,Values=running" \
+            --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            --output text)
           
-          # Get the instance IP from Terraform state
-          INSTANCE_IP=$(terraform output -raw instance_public_ip)
-          
-          if [ -z "$INSTANCE_IP" ] || [ "$INSTANCE_IP" = "null" ]; then
-            echo "❌ Could not get instance IP from Terraform"
+          if [ -z "$INSTANCE_IP" ] || [ "$INSTANCE_IP" = "null" ] || [ "$INSTANCE_IP" = "None" ]; then
+            echo "❌ Could not find running EC2 instance with the right tags"
+            echo "Looking for Project=ecommerce-app, Environment=production"
             exit 1
           fi
           
           echo "🎯 Found server IP: $INSTANCE_IP"
           echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
 
-      # ——— 2.5 Install SSH key ———————————————————————————————————————————
+      # ——— 2.3 Install SSH key ———————————————————————————————————————————
       - name: Install SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
-      # ——— 2.6 Add EC2 to known_hosts ———————————————————————————————————————————
+      # ——— 2.4 Add EC2 to known_hosts ———————————————————————————————————————————
       - name: Add EC2 to known_hosts
         run: |
           ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" >> ~/.ssh/known_hosts
 
-      # ——— 2.7 Deploy to Terraform-managed EC2 ———————————————————————————————————————————
+      # ——— 2.5 Deploy to Terraform-managed EC2 ———————————————————————————————————————————
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/deploy_key \
@@ -146,7 +116,7 @@ jobs:
             echo "🎉 Deployment successful at $(date)"
           EOF
 
-      # ——— 2.8 Notify on failure ———————————————————————————————————————————
+      # ——— 2.6 Notify on failure ———————————————————————————————————————————
       - name: Notify on deployment failure
         if: failure()
         run: |
