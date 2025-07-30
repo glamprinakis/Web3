@@ -78,28 +78,19 @@ jobs:
         run: |
           # First, wait for port 22 to be available
           echo "Waiting for SSH port to be available..."
-          for i in $(seq 1 10); do
+          for i in $(seq 1 6); do
             if nc -zv ${{ steps.terraform.outputs.instance_ip }} 22 2>/dev/null; then
               echo "✅ SSH port is open"
-              break
-            fi
-            echo "Attempt $i: SSH port not ready yet..."
-            sleep 30
-          done
-
-          # Now try to get the host key
-          echo "Getting SSH host key..."
-          for i in $(seq 1 5); do
-            echo "Attempt $i to get host key..."
-            if ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" 2>/dev/null >> ~/.ssh/known_hosts; then
-              echo "✅ Successfully added host key"
-              # Verify the key was actually added
-              if grep -q "${{ steps.terraform.outputs.instance_ip }}" ~/.ssh/known_hosts; then
-                exit 0
+              sleep 5  # Give sshd a moment to fully start
+              if ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" 2>/dev/null >> ~/.ssh/known_hosts; then
+                echo "✅ Successfully added host key"
+                if grep -q "${{ steps.terraform.outputs.instance_ip }}" ~/.ssh/known_hosts; then
+                  exit 0
+                fi
               fi
             fi
-            echo "Waiting 60 seconds before next attempt..."
-            sleep 60
+            echo "Attempt $i: Waiting for SSH..."
+            sleep 10
           done
           
           echo "❌ Failed to get host key after 5 attempts"
@@ -113,7 +104,8 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=yes \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=10 \
             ubuntu@${{ steps.terraform.outputs.instance_ip }} << 'EOF'
             
             set -e
