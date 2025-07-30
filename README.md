@@ -1,6 +1,6 @@
 # Web App made for practice
 
-A Dockerized full‑stack e‑commerce web application built with React, Node.js/Express, and MySQL, served behind Nginx. Production‑ready deployment to AWS EC2 with SSL support.
+A Dockerized full‑stack e‑commerce web application built with React, Node.js/Express, and MySQL, served behind Nginx. Production‑ready deployment to AWS EC2 with SSL support. Deployed at https://glamprinakis.com
 
 ## Features
 
