@@ -76,16 +76,37 @@ jobs:
       # ——— 2.4 Add EC2 to known_hosts ———————————————————————————————————————————
       - name: Add EC2 to known_hosts
         run: |
-          # Try up to 5 times with increasing delays
+          # First, wait for port 22 to be available
+          echo "Waiting for SSH port to be available..."
+          for i in $(seq 1 10); do
+            if nc -zv ${{ steps.terraform.outputs.instance_ip }} 22 2>/dev/null; then
+              echo "✅ SSH port is open"
+              break
+            fi
+            echo "Attempt $i: SSH port not ready yet..."
+            sleep 30
+          done
+
+          # Now try to get the host key
+          echo "Getting SSH host key..."
           for i in $(seq 1 5); do
             echo "Attempt $i to get host key..."
-            if ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" >> ~/.ssh/known_hosts; then
+            if ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" 2>/dev/null >> ~/.ssh/known_hosts; then
               echo "✅ Successfully added host key"
-              exit 0
+              # Verify the key was actually added
+              if grep -q "${{ steps.terraform.outputs.instance_ip }}" ~/.ssh/known_hosts; then
+                exit 0
+              fi
             fi
-            sleep $((i * 5))  # Wait 5, 10, 15, 20, 25 seconds between retries
+            echo "Waiting 60 seconds before next attempt..."
+            sleep 60
           done
+          
           echo "❌ Failed to get host key after 5 attempts"
+          echo "Debug information:"
+          echo "- Instance IP: ${{ steps.terraform.outputs.instance_ip }}"
+          echo "- Known hosts content:"
+          cat ~/.ssh/known_hosts
           exit 1
 
       # ——— 2.5 Deploy to Terraform-managed EC2 ———————————————————————————————————————————
