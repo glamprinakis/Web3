@@ -1,4 +1,4 @@
-name: Emergency Rollback
+name: 🔄 Emergency Rollback
 
 on:
   workflow_dispatch:

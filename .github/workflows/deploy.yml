@@ -1,4 +1,4 @@
-name: CI & Deploy to EC2
+name: 🚀 CI & Deploy to EC2
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
 jobs:
   # ─── 1) Run your tests ─────────────────────────────────────────────────────
   test:
+    name: 🧪 Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -27,6 +28,7 @@ jobs:
 
   # ─── 2) Deploy only if tests pass ─────────────────────────────────────────
   deploy:
+    name: 🚀 Deploy to EC2
     needs: test
     runs-on: ubuntu-latest
 

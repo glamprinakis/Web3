@@ -1,7 +1,6 @@
 name: 🗄️ Export Database from Server
 
 on:
-  # Manual trigger - you can run this anytime from GitHub Actions tab
   workflow_dispatch:
     inputs:
       commit_message:
@@ -10,8 +9,8 @@ on:
         default: '🗄️ Auto-export database from server'
       
   # Optional: Auto-export weekly (remove if you don't want this)
-  schedule:
-    - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
+  #schedule:
+  #  - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
 
 env:
   # Database connection settings
