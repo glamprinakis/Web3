@@ -76,7 +76,17 @@ jobs:
       # ——— 2.4 Add EC2 to known_hosts ———————————————————————————————————————————
       - name: Add EC2 to known_hosts
         run: |
-          ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" >> ~/.ssh/known_hosts
+          # Try up to 5 times with increasing delays
+          for i in $(seq 1 5); do
+            echo "Attempt $i to get host key..."
+            if ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" >> ~/.ssh/known_hosts; then
+              echo "✅ Successfully added host key"
+              exit 0
+            fi
+            sleep $((i * 5))  # Wait 5, 10, 15, 20, 25 seconds between retries
+          done
+          echo "❌ Failed to get host key after 5 attempts"
+          exit 1
 
       # ——— 2.5 Deploy to Terraform-managed EC2 ———————————————————————————————————————————
       - name: Deploy to EC2
