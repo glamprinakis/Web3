@@ -35,28 +35,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # ——— 2.1 Setup Terraform ———————————————————————————————————————————
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 1.5.0
-
-      # ——— 2.2 Configure AWS credentials ———————————————————————————————————————————
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
-
-      # ——— 2.3 Get Terraform outputs ———————————————————————————————————————————
-      - name: Get Terraform outputs
+      # ——— 2.1 Use known server IP ———————————————————————————————————————————
+      - name: Set server IP
         id: terraform
         run: |
-          cd terraform
-          terraform init
-          INSTANCE_IP=$(terraform output -raw instance_public_ip)
-          echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+          # Use the known IP of your Terraform-managed server
+          echo "instance_ip=52.214.12.92" >> $GITHUB_OUTPUT
 
       # ——— 2.4 Install SSH key ———————————————————————————————————————————
       - name: Install SSH key
