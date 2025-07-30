@@ -1,0 +1,121 @@
+name: 🚀 CI & Deploy to Terraform-Managed EC2
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # ─── 1) Run your tests ─────────────────────────────────────────────────────
+  test:
+    name: 🧪 Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dir: [node, react]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with: { node-version: '20' }
+
+      - name: Install & test `${{ matrix.dir }}`
+        working-directory: ${{ matrix.dir }}
+        run: |
+          npm install
+          npm test
+
+  # ─── 2) Deploy to Terraform-managed infrastructure ─────────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy to Terraform EC2
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # ——— 2.1 Setup Terraform ———————————————————————————————————————————
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      # ——— 2.2 Configure AWS credentials ———————————————————————————————————————————
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      # ——— 2.3 Get Terraform outputs ———————————————————————————————————————————
+      - name: Get Terraform outputs
+        id: terraform
+        run: |
+          cd terraform
+          terraform init
+          INSTANCE_IP=$(terraform output -raw instance_public_ip)
+          echo "instance_ip=$INSTANCE_IP" >> $GITHUB_OUTPUT
+
+      # ——— 2.4 Install SSH key ———————————————————————————————————————————
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      # ——— 2.5 Add EC2 to known_hosts ———————————————————————————————————————————
+      - name: Add EC2 to known_hosts
+        run: |
+          ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" >> ~/.ssh/known_hosts
+
+      # ——— 2.6 Deploy to Terraform-managed EC2 ———————————————————————————————————————————
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=yes \
+            ubuntu@${{ steps.terraform.outputs.instance_ip }} << 'EOF'
+            
+            set -e
+            cd ~/Web3
+
+            echo "🔄 Pulling latest code from GitHub..."
+            git fetch --all
+            git reset --hard origin/main
+
+            echo "🧱 Building full stack (frontend, proxy, backend)..."
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
+
+            echo "🧹 Cleaning up old Docker resources..."
+            # Remove dangling images (untagged images from previous builds)
+            docker image prune -f
+            # Remove stopped containers
+            docker container prune -f
+            # Remove unused networks
+            docker network prune -f
+            # Remove unused volumes (be careful with this one!)
+            docker volume prune -f
+
+            echo "⏳ Waiting for health check..."
+            sleep 5
+            if ! curl -sf http://localhost/api/health; then
+              echo "❌ Health check failed!"
+              exit 1
+            fi
+
+            echo "✅ Deployment complete and healthy!"
+            echo "📊 Docker space usage after cleanup:"
+            docker system df
+            
+            # Send success notification (optional)
+            echo "🎉 Deployment successful at $(date)"
+          EOF
+
+      # ——— 2.7 Notify on failure ———————————————————————————————————————————
+      - name: Notify on deployment failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Check the logs above for details."
+          # You could add Slack/Discord webhook here later
