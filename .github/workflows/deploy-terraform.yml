@@ -76,34 +76,72 @@ jobs:
       # ——— 2.4 Add EC2 to known_hosts ———————————————————————————————————————————
       - name: Add EC2 to known_hosts
         run: |
-          # First, wait for port 22 to be available
+          # First, let's verify our IP and SSH key setup
+          echo "🔍 DEBUG: Verifying setup..."
+          echo "- Instance IP: ${{ steps.terraform.outputs.instance_ip }}"
+          echo "- SSH key permissions:"
+          ls -l ~/.ssh/deploy_key
+          echo "- SSH key content check (first line only):"
+          head -n1 ~/.ssh/deploy_key
+          
+          echo "🔍 DEBUG: Testing basic connectivity..."
+          ping -c 1 ${{ steps.terraform.outputs.instance_ip }} || echo "Ping failed (expected if ICMP is blocked)"
+          
+          # Try to connect to SSH port
           echo "Waiting for SSH port to be available..."
           for i in $(seq 1 6); do
-            if nc -zv ${{ steps.terraform.outputs.instance_ip }} 22 2>/dev/null; then
+            echo "🔄 Attempt $i to connect to SSH port..."
+            if timeout 5 nc -zv ${{ steps.terraform.outputs.instance_ip }} 22 2>&1; then
               echo "✅ SSH port is open"
-              sleep 5  # Give sshd a moment to fully start
-              if ssh-keyscan -H "${{ steps.terraform.outputs.instance_ip }}" 2>/dev/null >> ~/.ssh/known_hosts; then
-                echo "✅ Successfully added host key"
+              echo "🔍 DEBUG: Testing SSH connection directly..."
+              ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -o ConnectTimeout=5 ubuntu@${{ steps.terraform.outputs.instance_ip }} echo "Test connection" || echo "Direct SSH test failed"
+              
+              echo "🔍 DEBUG: Attempting to get host key..."
+              if ssh-keyscan -H -T 5 "${{ steps.terraform.outputs.instance_ip }}" 2>ssh-keyscan.err >ssh-keyscan.out; then
+                echo "✅ ssh-keyscan succeeded"
+                echo "Output from ssh-keyscan:"
+                cat ssh-keyscan.out
+                cat ssh-keyscan.out >> ~/.ssh/known_hosts
                 if grep -q "${{ steps.terraform.outputs.instance_ip }}" ~/.ssh/known_hosts; then
+                  echo "✅ Host key successfully added to known_hosts"
                   exit 0
+                else
+                  echo "❌ Host key was not properly added to known_hosts"
                 fi
+              else
+                echo "❌ ssh-keyscan failed"
+                echo "ssh-keyscan error output:"
+                cat ssh-keyscan.err
               fi
+            else
+              echo "❌ SSH port not responding on attempt $i"
             fi
-            echo "Attempt $i: Waiting for SSH..."
+            echo "Waiting 10 seconds before next attempt..."
             sleep 10
           done
           
-          echo "❌ Failed to get host key after 5 attempts"
-          echo "Debug information:"
-          echo "- Instance IP: ${{ steps.terraform.outputs.instance_ip }}"
-          echo "- Known hosts content:"
+          echo "❌ Failed to establish SSH connection after all attempts"
+          echo "Final debug information:"
+          echo "1. Current network status:"
+          netstat -an | grep ${{ steps.terraform.outputs.instance_ip }} || true
+          echo "2. SSH configuration:"
+          ls -la ~/.ssh/
+          echo "3. Known hosts content:"
           cat ~/.ssh/known_hosts
+          echo "4. Instance status from AWS:"
+          aws ec2 describe-instances --instance-ids $(aws ec2 describe-instances --filters "Name=ip-address,Values=${{ steps.terraform.outputs.instance_ip }}" --query "Reservations[].Instances[].InstanceId" --output text) --query "Reservations[].Instances[].[State.Name,NetworkInterfaces[].Status[]]" --output text
           exit 1
 
       # ——— 2.5 Deploy to Terraform-managed EC2 ———————————————————————————————————————————
       - name: Deploy to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key \
+          echo "🔍 DEBUG: Attempting SSH connection..."
+          echo "1. Verify SSH key:"
+          ls -l ~/.ssh/deploy_key
+          echo "2. Known hosts content:"
+          cat ~/.ssh/known_hosts
+          echo "3. Testing SSH connection with verbose output:"
+          ssh -v -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=10 \
             ubuntu@${{ steps.terraform.outputs.instance_ip }} << 'EOF'
