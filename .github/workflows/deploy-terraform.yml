@@ -84,65 +84,48 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=10 \
-            ubuntu@${{ steps.terraform.outputs.instance_ip }} << 'EOF'
-            
-            set -e
-            cd ~/Web3
+                      -o StrictHostKeyChecking=yes \
+                      ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+                      
+                      set -e
+                      cd ~/Web3
 
-            echo "🔄 Pulling latest code from GitHub..."
-            git fetch --all
-            git reset --hard origin/main
+                      echo "🔄 Pulling latest code from GitHub..."
+                      git fetch --all
+                      git reset --hard origin/main
 
-            echo "🧱 Building full stack (frontend, proxy, backend)..."
-            docker compose -f docker-compose.prod.yml down
-            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
+                      echo "🧱 Building full stack (frontend, proxy, backend)..."
+                      docker compose -f docker-compose.prod.yml down
+                      docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
 
-            echo "🧹 Cleaning up old Docker resources..."
-            docker image prune -f
-            docker container prune -f
-            docker network prune -f
-            docker volume prune -f
+                      echo "🧹 Cleaning up old Docker resources..."
+                      # Remove dangling images (untagged images from previous builds)
+                      docker image prune -f
+                      # Remove stopped containers
+                      docker container prune -f
+                      # Remove unused networks
+                      docker network prune -f
+                      # Remove unused volumes (be careful with this one!)
+                      docker volume prune -f
 
-            echo "⏳ Waiting for services to be healthy..."
-            # Wait for MySQL to be ready
-            echo "Checking MySQL..."
-            for i in {1..30}; do
-              if docker exec web3-db-1 mysqladmin ping -h localhost -u root -p${DB_PASSWORD} --silent; then
-                echo "✅ MySQL is ready"
-                break
-              fi
-              echo "Waiting for MySQL... (attempt $i/30)"
-              sleep 2
-            done
+                      echo "⏳ Waiting for health check..."
+                      sleep 5
+                      if ! curl -sf http://localhost/api/health; then
+                        echo "❌ Health check failed!"
+                        exit 1
+                      fi
 
-            # Wait for the backend to be ready
-            echo "Checking Backend..."
-            for i in {1..30}; do
-              if curl -sf http://localhost/api/health; then
-                echo "✅ Backend API is ready"
-                break
-              fi
-              echo "Waiting for Backend API... (attempt $i/30)"
-              sleep 2
-              if [ $i -eq 30 ]; then
-                echo "❌ Backend health check failed! Showing logs:"
-                docker logs web3-backend-1
-                docker logs web3-proxy-1
-                exit 1
-              fi
-            done
+                      echo "✅ Deployment complete and healthy!"
+                      echo "📊 Docker space usage after cleanup:"
+                      docker system df
+                      
+                      # Send success notification (optional)
+                      echo "🎉 Deployment successful at $(date)"
+                    EOF
 
-            echo "✅ Deployment complete and healthy!"
-            echo "📊 Docker space usage after cleanup:"
-            docker system df
-            
-            echo "🎉 Deployment successful at $(date)"
-          EOF
-
-      # ——— 2.6 Notify on failure ———————————————————————————————————————————
-      - name: Notify on deployment failure
-        if: failure()
-        run: |
-          echo "❌ Deployment failed! Check the logs above for details."
+                # ——— 2.4 Notify on failure —————————————————————
+                - name: Notify on deployment failure
+                  if: failure()
+                  run: |
+                    echo "❌ Deployment failed! Check the logs above for details."
+                    # You could add Slack/Discord webhook here later
