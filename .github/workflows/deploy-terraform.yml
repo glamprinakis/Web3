@@ -84,48 +84,105 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -i ~/.ssh/deploy_key \
-                      -o StrictHostKeyChecking=yes \
-                      ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
-                      
-                      set -e
-                      cd ~/Web3
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=10 \
+            ubuntu@${{ steps.terraform.outputs.instance_ip }} << 'EOF'
+            
+            set -e
+            cd ~/Web3
 
-                      echo "🔄 Pulling latest code from GitHub..."
-                      git fetch --all
-                      git reset --hard origin/main
+            echo "🔄 Pulling latest code from GitHub..."
+            git fetch --all
+            git reset --hard origin/main
 
-                      echo "🧱 Building full stack (frontend, proxy, backend)..."
-                      docker compose -f docker-compose.prod.yml down
-                      docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
+            echo "🧱 Building full stack (frontend, proxy, backend)..."
+            docker compose -f docker-compose.prod.yml down
+            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
 
-                      echo "🧹 Cleaning up old Docker resources..."
-                      # Remove dangling images (untagged images from previous builds)
-                      docker image prune -f
-                      # Remove stopped containers
-                      docker container prune -f
-                      # Remove unused networks
-                      docker network prune -f
-                      # Remove unused volumes (be careful with this one!)
-                      docker volume prune -f
+            echo "🧹 Cleaning up old Docker resources..."
+            docker image prune -f
+            docker container prune -f
+            docker network prune -f
+            docker volume prune -f
 
-                      echo "⏳ Waiting for health check..."
-                      sleep 5
-                      if ! curl -sf http://localhost/api/health; then
-                        echo "❌ Health check failed!"
-                        exit 1
-                      fi
+            echo "⏳ Waiting for services to be healthy..."
+            
+            # Get the actual container names
+            DB_CONTAINER=$(docker ps --filter "name=db" --format "{{.Names}}")
+            BACKEND_CONTAINER=$(docker ps --filter "name=backend" --format "{{.Names}}")
+            PROXY_CONTAINER=$(docker ps --filter "name=proxy" --format "{{.Names}}")
+            
+            echo "Found containers:"
+            echo "DB: $DB_CONTAINER"
+            echo "Backend: $BACKEND_CONTAINER"
+            echo "Proxy: $PROXY_CONTAINER"
+            
+            # Wait for MySQL to be ready
+            echo "Checking MySQL..."
+            for i in {1..30}; do
+              if docker exec $DB_CONTAINER mysqladmin ping -h localhost -u root -p${DB_PASSWORD} --silent; then
+                echo "✅ MySQL is ready"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "❌ MySQL failed to start! Showing logs:"
+                docker logs $DB_CONTAINER
+                exit 1
+              fi
+              echo "Waiting for MySQL... (attempt $i/30)"
+              sleep 5
+            done
 
-                      echo "✅ Deployment complete and healthy!"
-                      echo "📊 Docker space usage after cleanup:"
-                      docker system df
-                      
-                      # Send success notification (optional)
-                      echo "🎉 Deployment successful at $(date)"
-                    EOF
+            # Give backend some time to start after MySQL is ready
+            echo "Giving backend time to initialize..."
+            sleep 10
 
-                # ——— 2.4 Notify on failure —————————————————————
-                - name: Notify on deployment failure
-                  if: failure()
-                  run: |
-                    echo "❌ Deployment failed! Check the logs above for details."
-                    # You could add Slack/Discord webhook here later
+            # Wait for the backend to be ready
+            echo "Checking Backend..."
+            for i in {1..30}; do
+              if curl -sf --connect-timeout 5 http://localhost:3000/api/health; then
+                echo "✅ Backend API is ready"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "❌ Backend health check failed! Showing logs:"
+                echo "=== Backend Logs ==="
+                docker logs $BACKEND_CONTAINER
+                echo "=== Proxy Logs ==="
+                docker logs $PROXY_CONTAINER
+                echo "=== MySQL Logs ==="
+                docker logs $DB_CONTAINER
+                exit 1
+              fi
+              echo "Waiting for Backend API... (attempt $i/30)"
+              sleep 5
+            done
+
+            # Finally check if the proxy is working
+            echo "Checking Proxy..."
+            for i in {1..15}; do
+              if curl -sf --connect-timeout 5 http://localhost/api/health; then
+                echo "✅ Proxy is ready"
+                break
+              fi
+              if [ $i -eq 15 ]; then
+                echo "❌ Proxy health check failed! Showing logs:"
+                docker logs $PROXY_CONTAINER
+                exit 1
+              fi
+              echo "Waiting for Proxy... (attempt $i/15)"
+              sleep 5
+            done
+
+            echo "✅ Deployment complete and healthy!"
+            echo "📊 Docker space usage after cleanup:"
+            docker system df
+            
+            echo "🎉 Deployment successful at $(date)"
+          EOF
+
+      # ——— 2.6 Notify on failure ———————————————————————————————————————————
+      - name: Notify on deployment failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Check the logs above for details."
