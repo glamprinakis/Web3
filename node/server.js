@@ -44,41 +44,6 @@ app.use((req, res, next) => {
 // --- Health ---
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-// Add a debug endpoint to check DB status
-app.get('/debug/db', async (req, res) => {
-  try {
-    console.log('DB Debug - Config:', {
-      host: DB_HOST,
-      user: DB_USER,
-      database: DB_NAME,
-      password: DB_PASSWORD ? '***SET***' : 'NOT_SET'
-    });
-    
-    if (!pool) {
-      return res.json({ status: 'error', message: 'Pool not initialized' });
-    }
-    
-    // Test basic connection
-    await pool.execute('SELECT 1 as test');
-    
-    // Check if database exists and has tables
-    const [tables] = await pool.execute('SHOW TABLES');
-    
-    res.json({
-      status: 'connected',
-      tables: tables.length,
-      tableNames: tables.map(t => Object.values(t)[0])
-    });
-  } catch (error) {
-    console.error('DB Debug error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: error.message,
-      code: error.code
-    });
-  }
-});
-
 // Helper for queries
 async function q(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
