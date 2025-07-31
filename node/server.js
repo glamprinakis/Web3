@@ -13,6 +13,19 @@ const DB_NAME = process.env.DB_NAME || 'lamprinakis_eshop';
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'change-this-in-prod';
 
+// 🔍 DEBUG: Log all environment variables to understand what's being passed
+console.log('🔧 Environment Debug Information:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('DB_HOST:', DB_HOST);
+console.log('DB_USER:', DB_USER);
+console.log('DB_PASSWORD:', DB_PASSWORD ? `${DB_PASSWORD.substring(0, 3)}***` : 'EMPTY');
+console.log('DB_NAME:', DB_NAME);
+console.log('JWT_SECRET:', JWT_SECRET ? `${JWT_SECRET.substring(0, 3)}***` : 'EMPTY');
+console.log('All DB_ env vars:', Object.keys(process.env).filter(key => key.startsWith('DB_')).map(key => `${key}=${process.env[key] ? process.env[key].substring(0, 3) + '***' : 'EMPTY'}`));
+console.log('Current working directory:', process.cwd());
+console.log('Process args:', process.argv);
+console.log('🔧 End Environment Debug\n');
+
 // --- DB pool ---
 let pool;
 
@@ -26,6 +39,17 @@ async function connectToDatabase(retries = 15) {
   while (retries > 0) {
     try {
       console.log(`🔗 Connecting to database at ${DB_HOST}:3306 with user ${DB_USER} (${retries} retries left)`);
+      console.log(`🔑 Using password: ${DB_PASSWORD ? `${DB_PASSWORD.substring(0, 3)}*** (length: ${DB_PASSWORD.length})` : 'EMPTY/UNDEFINED'}`);
+      
+      // Verify we have all required connection parameters
+      if (!DB_HOST || !DB_USER || !DB_PASSWORD || !DB_NAME) {
+        console.error('❌ Missing required database connection parameters:');
+        console.error(`  DB_HOST: ${DB_HOST || 'MISSING'}`);
+        console.error(`  DB_USER: ${DB_USER || 'MISSING'}`);
+        console.error(`  DB_PASSWORD: ${DB_PASSWORD ? 'PROVIDED' : 'MISSING'}`);
+        console.error(`  DB_NAME: ${DB_NAME || 'MISSING'}`);
+        throw new Error('Missing required database connection parameters');
+      }
       
       pool = await mysql.createPool({
         host: DB_HOST,
@@ -40,6 +64,7 @@ async function connectToDatabase(retries = 15) {
       });
       
       // Test the connection
+      console.log('🧪 Testing database connection...');
       const [rows] = await pool.execute('SELECT 1 as test');
       console.log('✅ Database connection successful');
       
@@ -55,6 +80,10 @@ async function connectToDatabase(retries = 15) {
       
     } catch (error) {
       console.error(`❌ Database connection failed (${retries} retries left):`, error.message);
+      console.error(`🔍 Error code: ${error.code}`);
+      console.error(`🔍 Error errno: ${error.errno}`);
+      console.error(`🔍 Error sqlState: ${error.sqlState}`);
+      console.error(`🔍 Full error:`, error);
       retries--;
       
       if (retries === 0) {
