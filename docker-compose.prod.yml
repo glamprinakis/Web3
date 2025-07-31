@@ -20,7 +20,7 @@ services:
       - backend
     ports:
       - "80:80"
-      - "443:443"         # add "443:443" after you set up TLS
+      # - "443:443"         # disabled until SSL certs are restored
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./react-build:/usr/share/nginx/html:ro
