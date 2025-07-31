@@ -16,15 +16,34 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change-this-in-prod';
 // --- DB pool ---
 let pool;
 (async () => {
-  pool = await mysql.createPool({
-    host: DB_HOST,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    multipleStatements: false,
-  });
+  try {
+    console.log(`🔗 Connecting to database at ${DB_HOST}:3306 with user ${DB_USER}`);
+    pool = await mysql.createPool({
+      host: DB_HOST,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      database: DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      multipleStatements: false,
+    });
+    
+    // Test the connection
+    const [rows] = await pool.execute('SELECT 1 as test');
+    console.log('✅ Database connection successful');
+    
+    // Check if tables exist and have data
+    const [tables] = await pool.execute('SHOW TABLES');
+    console.log(`📋 Database tables: ${tables.map(t => Object.values(t)[0]).join(', ')}`);
+    
+    const [productCount] = await pool.execute('SELECT COUNT(*) as count FROM products');
+    const [userCount] = await pool.execute('SELECT COUNT(*) as count FROM users');
+    console.log(`📊 Database stats: ${productCount[0].count} products, ${userCount[0].count} users`);
+    
+  } catch (error) {
+    console.error('❌ Database connection failed:', error.message);
+    console.error('Stack:', error.stack);
+  }
 })();
 
 // --- Middleware ---
@@ -85,10 +104,14 @@ function generateOrderID(uid) {
 // ========== Products ==========
 app.get('/products', async (req, res) => {
   try {
+    console.log('🛍️  Fetching all products...');
     const rows = await q('SELECT * FROM products');
+    console.log(`✅ Found ${rows.length} products`);
     res.json(rows);
   } catch (e) {
-    res.status(500).json([]);
+    console.error('❌ Error fetching products:', e.message);
+    console.error('Stack:', e.stack);
+    res.status(500).json({ error: 'Failed to fetch products', message: e.message });
   }
 });
 
@@ -96,11 +119,14 @@ app.get('/products/:cat', async (req, res) => {
   try {
     const allowed = ['desktops', 'hardware', 'laptops', 'monitors', 'networking', 'peripherals', 'tablets'];
     const cat = req.params.cat.toLowerCase();
+    console.log(`🏷️  Fetching products for category: ${cat}`);
     if (!allowed.includes(cat)) return res.status(400).json({ message: 'Invalid category' });
     const rows = await q('SELECT * FROM products WHERE category = ?', [cat]);
+    console.log(`✅ Found ${rows.length} products in category ${cat}`);
     res.json(rows);
   } catch (e) {
-    res.status(500).json([]);
+    console.error(`❌ Error fetching products for category ${req.params.cat}:`, e.message);
+    res.status(500).json({ error: 'Failed to fetch products', message: e.message });
   }
 });
 
