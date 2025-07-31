@@ -42,7 +42,8 @@ services:
     expose:
       - "3000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks: [appnet]
 
   # MySQL (private)
@@ -56,6 +57,12 @@ services:
       - mysql-data:/var/lib/mysql
       - ./db:/docker-entrypoint-initdb.d
     networks: [appnet]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$DB_PASSWORD"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+      start_period: 40s
 
   # Optional: Admin tool (keep private; access via SSH tunnel only)
   phpmyadmin:

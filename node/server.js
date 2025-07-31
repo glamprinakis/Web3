@@ -15,36 +15,54 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change-this-in-prod';
 
 // --- DB pool ---
 let pool;
-(async () => {
-  try {
-    console.log(`🔗 Connecting to database at ${DB_HOST}:3306 with user ${DB_USER}`);
-    pool = await mysql.createPool({
-      host: DB_HOST,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      database: DB_NAME,
-      waitForConnections: true,
-      connectionLimit: 10,
-      multipleStatements: false,
-    });
-    
-    // Test the connection
-    const [rows] = await pool.execute('SELECT 1 as test');
-    console.log('✅ Database connection successful');
-    
-    // Check if tables exist and have data
-    const [tables] = await pool.execute('SHOW TABLES');
-    console.log(`📋 Database tables: ${tables.map(t => Object.values(t)[0]).join(', ')}`);
-    
-    const [productCount] = await pool.execute('SELECT COUNT(*) as count FROM products');
-    const [userCount] = await pool.execute('SELECT COUNT(*) as count FROM users');
-    console.log(`📊 Database stats: ${productCount[0].count} products, ${userCount[0].count} users`);
-    
-  } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
-    console.error('Stack:', error.stack);
+
+async function connectToDatabase(retries = 10) {
+  while (retries > 0) {
+    try {
+      console.log(`🔗 Connecting to database at ${DB_HOST}:3306 with user ${DB_USER} (${retries} retries left)`);
+      
+      pool = await mysql.createPool({
+        host: DB_HOST,
+        user: DB_USER,
+        password: DB_PASSWORD,
+        database: DB_NAME,
+        waitForConnections: true,
+        connectionLimit: 10,
+        multipleStatements: false,
+      });
+      
+      // Test the connection
+      const [rows] = await pool.execute('SELECT 1 as test');
+      console.log('✅ Database connection successful');
+      
+      // Check if tables exist and have data
+      const [tables] = await pool.execute('SHOW TABLES');
+      console.log(`📋 Database tables: ${tables.map(t => Object.values(t)[0]).join(', ')}`);
+      
+      const [productCount] = await pool.execute('SELECT COUNT(*) as count FROM products');
+      const [userCount] = await pool.execute('SELECT COUNT(*) as count FROM users');
+      console.log(`📊 Database stats: ${productCount[0].count} products, ${userCount[0].count} users`);
+      
+      return; // Success, exit the function
+      
+    } catch (error) {
+      console.error(`❌ Database connection failed (${retries} retries left):`, error.message);
+      retries--;
+      
+      if (retries === 0) {
+        console.error('💀 Final database connection attempt failed. Exiting...');
+        console.error('Stack:', error.stack);
+        process.exit(1);
+      }
+      
+      console.log(`⏳ Retrying database connection in 5 seconds...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
   }
-})();
+}
+
+// Initialize database connection
+connectToDatabase();
 
 // --- Middleware ---
 app.use(express.json());
