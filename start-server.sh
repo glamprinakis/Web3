@@ -10,6 +10,14 @@ if [ ! -f "terraform/main.tf" ]; then
     exit 1
 fi
 
+# Run environment validation
+echo "🔍 Validating environment before starting server..."
+./validate-environment.sh
+if [ $? -ne 0 ]; then
+    echo "❌ Environment validation failed. Please fix the issues above."
+    exit 1
+fi
+
 # Navigate to terraform directory
 cd terraform
 

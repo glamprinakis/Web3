@@ -10,6 +10,17 @@ if [ ! -f "terraform/main.tf" ]; then
     exit 1
 fi
 
+# Run basic validation (lighter check for stopping)
+echo "🔍 Quick validation before stopping server..."
+if [ ! -f "terraform/main.tf" ]; then
+    echo "❌ Terraform configuration not found"
+    exit 1
+fi
+
+if [ ! -d "terraform/.terraform" ]; then
+    echo "⚠️  Terraform not initialized, but proceeding with stop operation..."
+fi
+
 # Disconnect PhpMyAdmin tunnel first
 echo "🔌 Disconnecting PhpMyAdmin tunnel..."
 pkill -f "ssh.*8000:localhost:8000" 2>/dev/null || echo "   No tunnel to disconnect"
