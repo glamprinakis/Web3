@@ -70,8 +70,25 @@ async function connectToDatabase(retries = 15) {
         timeout: 60000,
       });
       
-      // Test the connection
       console.log('🧪 Testing database connection...');
+      
+      // Add network connectivity test
+      console.log('🔍 Testing basic network connectivity to database...');
+      try {
+        const testConnection = await mysql.createConnection({
+          host: DB_HOST,
+          user: DB_USER,
+          password: DB_PASSWORD,
+          connectTimeout: 10000,
+        });
+        console.log('✅ Basic connection to MySQL server successful');
+        await testConnection.end();
+      } catch (connError) {
+        console.error('❌ Basic connection failed:', connError.message);
+        console.error('🚨 This suggests network/timing issue, not password!');
+      }
+      
+      // Now test database access
       const [rows] = await pool.execute('SELECT 1 as test');
       console.log('✅ Database connection successful');
       
@@ -93,38 +110,71 @@ async function connectToDatabase(retries = 15) {
       
       // If it's an access denied error, try alternative passwords
       if (error.code === 'ER_ACCESS_DENIED_ERROR' && retries === 15) {
-        console.log('🔍 Trying alternative passwords to identify the correct one...');
-        console.log('🔍 Database container should have same DB_PASSWORD env var as backend...');
+        console.log('🔍 WAIT! Health check passes but connection fails - this is suspicious!');
+        console.log('🔍 Health check uses same password but succeeds - investigating...');
         
-        for (const testPassword of possiblePasswords) {
-          if (testPassword === DB_PASSWORD) continue; // Skip the one we already tried
+        // Test if it's a timing/network issue
+        console.log('🧪 Testing if this is a network/timing issue vs password issue...');
+        
+        // Try connecting without specifying database
+        try {
+          console.log('🧪 Testing connection without database selection...');
+          const testPool = await mysql.createPool({
+            host: DB_HOST,
+            user: DB_USER,
+            password: DB_PASSWORD,
+            waitForConnections: true,
+            connectionLimit: 1,
+          });
           
-          try {
-            console.log(`🧪 Testing password: ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'}`);
-            const testPool = await mysql.createPool({
-              host: DB_HOST,
-              user: DB_USER,
-              password: testPassword,
-              database: DB_NAME,
-              waitForConnections: true,
-              connectionLimit: 1,
-            });
+          const [testRows] = await testPool.execute('SELECT 1 as test');
+          console.log('✅ SUCCESS! Can connect without database selection');
+          console.log('� This means password is CORRECT but database selection fails!');
+          console.log('🚨 Possible causes: Database not fully initialized, timing issue, or database name mismatch');
+          
+          // Test database existence
+          const [databases] = await testPool.execute('SHOW DATABASES');
+          console.log('📋 Available databases:', databases.map(db => Object.values(db)[0]).join(', '));
+          
+          await testPool.end();
+          
+          // Now let's wait a bit for database to fully initialize
+          console.log('⏳ Database might be initializing... waiting 10 seconds...');
+          await new Promise(resolve => setTimeout(resolve, 10000));
+          
+        } catch (noDatabaseError) {
+          console.log('❌ Even without database selection failed:', noDatabaseError.message);
+          console.log('🔍 This confirms it\'s a password issue, trying alternatives...');
+          
+          for (const testPassword of possiblePasswords) {
+            if (testPassword === DB_PASSWORD) continue; // Skip the one we already tried
             
-            const [testRows] = await testPool.execute('SELECT 1 as test');
-            console.log(`✅ SUCCESS! Database was initialized with password: ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'}`);
-            console.log(`🔧 Update your .env file on the server to: DB_PASSWORD=${testPassword}`);
-            await testPool.end();
-            break;
-          } catch (testError) {
-            console.log(`❌ Password ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'} failed`);
+            try {
+              console.log(`🧪 Testing password: ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'}`);
+              const testPool = await mysql.createPool({
+                host: DB_HOST,
+                user: DB_USER,
+                password: testPassword,
+                database: DB_NAME,
+                waitForConnections: true,
+                connectionLimit: 1,
+              });
+              
+              const [testRows] = await testPool.execute('SELECT 1 as test');
+              console.log(`✅ SUCCESS! Database was initialized with password: ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'}`);
+              console.log(`🔧 Update your .env file on the server to: DB_PASSWORD=${testPassword}`);
+              await testPool.end();
+              break;
+            } catch (testError) {
+              console.log(`❌ Password ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'} failed`);
+            }
           }
         }
         
         // If all passwords failed, this suggests the volume needs to be reset
-        console.log('🚨 All common passwords failed!');
-        console.log('🚨 This means the database volume was created with an unknown password');
-        console.log('🚨 SOLUTION: You need to reset the database volume using the reset-db-volume.sh script');
-        console.log('🚨 Or check if the database container has different environment variables');
+        console.log('🚨 Analysis complete!');
+        console.log('🚨 If password is correct but database selection fails = timing/initialization issue');
+        console.log('🚨 If all passwords fail = volume needs reset with ./reset-db-volume.sh');
       }
       
       console.error(`🔍 Full error:`, error);
