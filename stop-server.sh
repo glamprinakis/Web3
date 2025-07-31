@@ -36,16 +36,20 @@ echo "   • Remove all AWS resources"
 echo "   • Save you money! 💰"
 echo ""
 
-# Destroy infrastructure
-terraform destroy -auto-approve
+# Destroy infrastructure (but keep Elastic IP)
+terraform destroy -auto-approve -target=aws_instance.web -target=aws_eip_association.web
 
 if [ $? -eq 0 ]; then
     echo ""
     echo "✅ Server successfully stopped!"
     echo "💰 You're no longer being charged for:"
-    echo "   • EC2 instance"
-    echo "   • Elastic IP"
-    echo "   • EBS volume (if detached)"
+    echo "   • EC2 instance ✅"
+    echo "   • EBS volume ✅"
+    echo ""
+    echo "💡 IMPORTANT: Elastic IP is preserved!"
+    echo "   • Your IP address ($(terraform output -raw server_ip 2>/dev/null || echo 'unknown')) stays the same"
+    echo "   • No DNS changes needed when restarting"
+    echo "   • Small charge (~$0.005/hour) for unattached EIP"
     echo ""
     echo "🚀 To start the server again, run: ./start-server.sh"
 else

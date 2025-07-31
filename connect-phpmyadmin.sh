@@ -16,8 +16,7 @@ fi
 
 # Start SSH tunnel
 echo "🚀 Starting SSH tunnel..."
-echo "🔍 Connecting to static Elastic IP: 79.125.4.130"
-ssh -i ~/.ssh/deploy_key_ec2 -L 8000:localhost:8000 ubuntu@79.125.4.130 -N &
+ssh -i ~/.ssh/deploy_key_ec2 -L 8000:localhost:8000 ubuntu@glamprinakis.com -N &
 
 # Wait a moment for connection
 sleep 2

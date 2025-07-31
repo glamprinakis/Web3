@@ -220,9 +220,10 @@ resource "aws_instance" "web" {
 }
 
 # ─── Elastic IP ─────────────────────────────────────────────
+# Create EIP first, then associate it with instance
+# This ensures the IP persists across instance destroy/create cycles
 resource "aws_eip" "web" {
-  instance = aws_instance.web.id
-  domain   = "vpc"
+  domain = "vpc"
 
   tags = {
     Name        = "${var.project_name}-eip"
@@ -231,6 +232,16 @@ resource "aws_eip" "web" {
   }
 
   depends_on = [aws_internet_gateway.main]
+  
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# Associate the EIP with the instance
+resource "aws_eip_association" "web" {
+  instance_id   = aws_instance.web.id
+  allocation_id = aws_eip.web.id
 }
 
 # ─── Route53 DNS (Optional) ─────────────────────────────────────────────
