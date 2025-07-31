@@ -93,34 +93,9 @@ jobs:
             set -e
             cd ~/Web3
 
-            echo "🔄 Pulling latest code from GitHub..."
-            git fetch --all
-            git reset --hard origin/main
-
-            echo "🧱 Building full stack (frontend, proxy, backend)..."
-            
-            # Verify docker-compose file exists
-            if [ ! -f "docker-compose.prod.yml" ]; then
-              echo "❌ docker-compose.prod.yml not found!"
-              ls -la
-              exit 1
-            fi
-            
-            # Check if DB_PASSWORD is available
-            if [ -z "${DB_PASSWORD}" ]; then
-              echo "❌ DB_PASSWORD environment variable is not set!"
-              exit 1
-            fi
-            
-            echo "Stopping existing containers..."
-            docker compose -f docker-compose.prod.yml down
-            
-            echo "Starting services..."
-            docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
-            
-            # Verify services started
-            echo "Checking if services started:"
-            docker compose -f docker-compose.prod.yml ps
+            # Make deploy script executable and run it
+            chmod +x ./deploy.sh
+            ./deploy.sh
 
             echo "🧹 Cleaning up old Docker resources..."
             docker image prune -f
@@ -128,42 +103,16 @@ jobs:
             docker network prune -f
             docker volume prune -f
 
-            echo "⏳ Waiting for services to be healthy..."
-            
-            # List all running containers for debugging
-            echo "=== All Running Containers ==="
-            docker ps
-            echo "==========================="
-            
-            # Get the actual container names with more specific filters
-            DB_CONTAINER=$(docker ps --filter "name=web3-db" --format "{{.Names}}")
-            BACKEND_CONTAINER=$(docker ps --filter "name=web3-backend" --format "{{.Names}}")
-            PROXY_CONTAINER=$(docker ps --filter "name=web3-proxy" --format "{{.Names}}")
-            
-            # Verify container existence
-            if [ -z "$DB_CONTAINER" ] || [ -z "$BACKEND_CONTAINER" ] || [ -z "$PROXY_CONTAINER" ]; then
-              echo "❌ Some containers are missing!"
-              echo "Expected containers:"
-              echo "DB: $DB_CONTAINER"
-              echo "Backend: $BACKEND_CONTAINER"
-              echo "Proxy: $PROXY_CONTAINER"
-              
-              echo "=== Container Logs ==="
-              echo "Backend logs:"
-              docker logs web3-backend-1 || echo "No backend logs available"
-              echo "MySQL logs:"
-              docker logs web3-db-1 || echo "No MySQL logs available"
-              echo "Proxy logs:"
-              docker logs web3-proxy-1 || echo "No proxy logs available"
-              
-              echo "=== Environment Check ==="
-              echo "Checking if DB_PASSWORD is set (masked):"
-              if [ -z "${DB_PASSWORD}" ]; then
-                echo "❌ DB_PASSWORD is not set!"
-              else
-                echo "✅ DB_PASSWORD is set"
-              fi
-              
+            echo "⏳ Waiting for services to start..."
+            sleep 10  # Give services time to initialize
+
+            echo "Checking if services are running..."
+            docker compose -f docker-compose.prod.yml ps
+
+            # Simple check to see if containers are running
+            if ! docker compose -f docker-compose.prod.yml ps | grep -q "backend.*Up"; then
+              echo "❌ Backend container is not running!"
+              docker compose -f docker-compose.prod.yml logs backend
               exit 1
             fi
             
@@ -195,7 +144,7 @@ jobs:
             # Wait for the backend to be ready
             echo "Checking Backend..."
             for i in {1..30}; do
-              if curl -sf --connect-timeout 5 http://localhost:3000/api/health; then
+              if docker exec $BACKEND_CONTAINER wget -q --spider http://localhost:3000/api/health; then
                 echo "✅ Backend API is ready"
                 break
               fi
@@ -203,8 +152,6 @@ jobs:
                 echo "❌ Backend health check failed! Showing logs:"
                 echo "=== Backend Logs ==="
                 docker logs $BACKEND_CONTAINER
-                echo "=== Proxy Logs ==="
-                docker logs $PROXY_CONTAINER
                 echo "=== MySQL Logs ==="
                 docker logs $DB_CONTAINER
                 exit 1
