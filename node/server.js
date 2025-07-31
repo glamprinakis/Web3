@@ -44,6 +44,30 @@ app.use((req, res, next) => {
 // --- Health ---
 app.get('/health', (req, res) => res.json({ ok: true }));
 
+// --- Debug endpoint to check database connectivity ---
+app.get('/debug/db', async (req, res) => {
+  try {
+    const tables = await q('SHOW TABLES');
+    const productCount = await q('SELECT COUNT(*) as count FROM products');
+    const userCount = await q('SELECT COUNT(*) as count FROM users');
+    const products = await q('SELECT pid, name, category, brand, price FROM products LIMIT 5');
+    
+    res.json({
+      database: 'connected',
+      tables: tables,
+      productCount: productCount[0].count,
+      userCount: userCount[0].count,
+      sampleProducts: products
+    });
+  } catch (e) {
+    res.status(500).json({ 
+      database: 'error', 
+      error: e.message,
+      stack: e.stack 
+    });
+  }
+});
+
 // Helper for queries
 async function q(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
