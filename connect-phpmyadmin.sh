@@ -14,9 +14,22 @@ if pgrep -f "ssh.*8000:localhost:8000" > /dev/null; then
     exit 0
 fi
 
+# Get current server IP from Terraform
+echo "🔍 Getting current server IP from Terraform..."
+cd terraform 2>/dev/null || { echo "❌ Please run from project root directory"; exit 1; }
+SERVER_IP=$(terraform output -raw server_ip 2>/dev/null)
+cd .. 2>/dev/null
+
+if [ -z "$SERVER_IP" ]; then
+    echo "❌ Could not get server IP from Terraform"
+    echo "   Make sure the server is running: ./start-server.sh"
+    exit 1
+fi
+
 # Start SSH tunnel
-echo "🚀 Starting SSH tunnel..."
-ssh -i ~/.ssh/deploy_key_ec2 -L 8000:localhost:8000 ubuntu@glamprinakis.com -N &
+echo "🚀 Starting SSH tunnel to $SERVER_IP..."
+echo "🔍 Connecting to current server IP: $SERVER_IP"
+ssh -i ~/.ssh/deploy_key_ec2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -L 8000:localhost:8000 ubuntu@$SERVER_IP -N &
 
 # Wait a moment for connection
 sleep 2

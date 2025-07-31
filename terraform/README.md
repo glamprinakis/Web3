@@ -1,213 +1,240 @@
-# Infrastructure as Code with Terraform
+# 🛒 E-commerce Application with Terraform Infrastructure
 
-This directory contains Terraform configuration to provision AWS infrastructure for the e-commerce application.
+A full-stack e-commerce application with React frontend, Node.js backend, MySQL database, and automated AWS infrastructure deployment.
 
-## 🏗️ What This Creates
+## 🏗️ System Architecture
 
-- **VPC** with public subnet and internet gateway
-- **EC2 instance** (t3.micro) with Ubuntu 22.04
-- **Security Group** with HTTP/HTTPS/SSH access
-- **Elastic IP** for static IP address
-- **Key Pair** for SSH access
-- **Automated deployment** via user-data script
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Internet                                 │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+              ┌───────▼────────┐
+              │ DNS Provider   │ ────── glamprinakis.com → 79.125.4.130
+              │ (Your Domain)  │        (Static Elastic IP)
+              └────────────────┘
+                      │
+    ┌─────────────────▼───────────────────────────────────────────┐
+    │                    AWS VPC                                  │
+    │  ┌─────────────────────────────────────────────────────┐    │
+    │  │              EC2 Instance (Ubuntu 22.04)           │    │
+    │  │  ┌─────────────────────────────────────────────┐    │    │
+    │  │  │              Docker Compose                 │    │    │
+    │  │  │  ┌─────────┐ ┌─────────┐ ┌─────────────┐    │    │    │
+    │  │  │  │ Nginx   │ │ Node.js │ │   MySQL 8   │    │    │    │
+    │  │  │  │ Proxy   │ │ Backend │ │  Database   │    │    │    │
+    │  │  │  │ + React │ │   API   │ │             │    │    │    │
+    │  │  │  └─────────┘ └─────────┘ └─────────────┘    │    │    │
+    │  │  │  ┌─────────────────────────────────────┐    │    │    │
+    │  │  │  │         PhpMyAdmin                  │    │    │    │
+    │  │  │  │    (SSH Tunnel Access Only)         │    │    │    │
+    │  │  │  └─────────────────────────────────────┘    │    │    │
+    │  │  └─────────────────────────────────────────────┘    │    │
+    │  └─────────────────────────────────────────────────────┐    │
+    └─────────────────────────────────────────────────────────────┘
+```
+
+## 🐳 Docker Compose Internal Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         Docker Host (EC2 Instance)                      │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │                     Docker Network: appnet                      │    │
+│  │                                                                 │    │
+│  │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────┐  │    │
+│  │  │   NGINX PROXY   │    │   NODE.JS API   │    │   MYSQL 8   │  │    │
+│  │  │   web3-proxy-1  │    │  web3-backend-1 │    │  web3-db-1  │  │    │
+│  │  │                 │    │                 │    │             │  │    │
+│  │  │ ┌─────────────┐ │    │ ┌─────────────┐ │    │ ┌─────────┐ │  │    │
+│  │  │ │React Static │ │    │ │ Express.js  │ │    │ │Database │ │  │    │
+│  │  │ │    Files    │ │    │ │    Server   │ │    │ │ Tables  │ │  │    │
+│  │  │ │/usr/share/  │ │    │ │   Port 3000 │ │    │ │ - users │ │  │    │
+│  │  │ │nginx/html   │ │    │ │             │ │    │ │ - products│  │    │
+│  │  │ └─────────────┘ │    │ │ ┌─────────┐ │ │    │ │ - orders│ │  │    │
+│  │  │                 │    │ │ │JWT Auth │ │ │    │ │ - carts │ │  │    │
+│  │  │ ┌─────────────┐ │    │ │ │MySQL    │ │ │    │ └─────────┘ │  │    │
+│  │  │ │nginx.conf   │ │    │ │ │Client   │ │ │    │             │  │    │
+│  │  │ │- Static /   │ │    │ │ └─────────┘ │ │    │ ┌─────────┐ │  │    │
+│  │  │ │- Proxy /api │ │◄───┤ └─────────────┘ │◄───┤ │Persistent││  │    │
+│  │  │ │- SSL Cert   │ │    │                 │    │ │ Volume  │ │  │    │
+│  │  │ └─────────────┘ │    │ Environment:    │    │ │mysql-data││  │    │
+│  │  │                 │    │ - NODE_ENV=prod │    │ └─────────┘ │  │    │
+│  │  │ Ports:          │    │ - DB_HOST=db    │    │             │  │    │
+│  │  │ - 80:80 ────────┼────┤ - DB_PASSWORD   │    │ Health Check│  │    │
+│  │  │ - 443:443       │    │ - JWT_SECRET    │    │ - mysqladmin│  │    │
+│  │  └─────────────────┘    │                 │    │ - table test│  │    │
+│  │           │             │ Depends on:     │    └─────────────┘  │    │
+│  │           │             │ - db (healthy)  │             ▲       │    │
+│  │           │             └─────────────────┘             │       │    │
+│  │           │                        │                    │       │    │
+│  │           │                        └────────────────────┘       │    │
+│  │           │                                                     │    │
+│  │           ▼                                                     │    │
+│  │  ┌─────────────────┐                              ┌─────────────┘    │
+│  │  │   PHPMYADMIN    │                              │                  │
+│  │  │web3-phpmyadmin-1│                              │                  │
+│  │  │                 │                              │                  │
+│  │  │ ┌─────────────┐ │                              │                  │
+│  │  │ │ Web Interface││                              │                  │
+│  │  │ │ for MySQL   │ │──────────────────────────────┘                  │
+│  │  │ │ Database    │ │                                                 │
+│  │  │ │ Management  │ │ Environment:                                    │
+│  │  │ └─────────────┘ │ - PMA_HOST=db                                   │
+│  │  │                 │ - PMA_USER=root                                 │
+│  │  │ Port:           │ - PMA_PASSWORD=${DB_PASSWORD}                   │
+│  │  │ 127.0.0.1:8000  │                                                 │
+│  │  │ (localhost only)│ Depends on: db                                  │
+│  │  └─────────────────┘                                                 │
+│  │                                                                      │
+│  └──────────────────────────────────────────────────────────────────────┘
+│                                                                         │
+│  Host Volumes:                                                          │
+│  ├── ./nginx.conf → /etc/nginx/conf.d/default.conf                      │
+│  ├── ./react-build → /usr/share/nginx/html                              │
+│  ├── ./db → /docker-entrypoint-initdb.d                                 │
+│  └── ./certbot/conf → /etc/letsencrypt                                  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+
+Traffic Flow:
+1. Internet → EC2:443/80 → Nginx Container
+2. Static Files: Nginx serves React build directly
+3. API Requests: Nginx → /api → Node.js Container:3000
+4. Database: Node.js → MySQL Container:3306 (internal network)
+5. Admin: SSH Tunnel → PhpMyAdmin:8000 → MySQL:3306
+```
 
 ## 🚀 Quick Start
 
-### 1. Prerequisites
+### Prerequisites
+- AWS CLI configured with credentials
+- Domain registered (pointing to static IP)
+- SSH key pair for server access
+
+### 1. Environment Setup
+```bash
+git clone <repository>
+cd human-computer-interaction-main-3
+
+# Configure environment
+cp .env.example .env
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+
+# Edit with your values:
+# - DB_PASSWORD
+# - JWT_SECRET 
+# - SSH public key
+```
+
+### 2. Deploy Infrastructure
+```bash
+./start-server.sh    # Creates AWS resources & deploys app
+./server-status.sh   # Check deployment status
+```
+
+### 3. Access Services
+- **Website**: https://glamprinakis.com
+- **API Health**: https://glamprinakis.com/api/health
+- **Database Admin**: `./connect-phpmyadmin.sh` → http://localhost:8000
+
+## 💰 Cost Management
 
 ```bash
-# Install Terraform
-brew install terraform  # macOS
-# or download from https://terraform.io
-
-# Install AWS CLI
-brew install awscli
-aws configure  # Set your AWS credentials
+./stop-server.sh     # Stop server to save money (~$33/month → ~$4/month)
+./start-server.sh    # Restart with same IP address
 ```
 
-### 2. Setup
+**Cost Breakdown:**
+- **Running**: ~$33/month (EC2 + EBS)
+- **Stopped**: ~$4/month (Elastic IP reservation only)
+- **Key Feature**: IP address never changes between stops/starts
 
-```bash
-cd terraform
+## 🔧 Management Commands
 
-# Copy example variables file
-cp terraform.tfvars.example terraform.tfvars
+| Command | Purpose |
+|---------|---------|
+| `./validate-environment.sh` | Check all configurations |
+| `./connect-phpmyadmin.sh` | Access database admin |
+| `./disconnect-phpmyadmin.sh` | Close database connection |
+| `./test-github-secrets.sh` | Test CI/CD pipeline |
 
-# Edit terraform.tfvars with your values
-vim terraform.tfvars
-```
+## 📋 Configuration Files
 
-### 3. Deploy
+| File | Purpose |
+|------|---------|
+| `.env` | Local environment variables |
+| `terraform/terraform.tfvars` | Infrastructure configuration |
+| `docker-compose.prod.yml` | Production container setup |
+| `.github/workflows/deploy-terraform.yml` | Auto-deployment |
 
-```bash
-# Initialize Terraform
-terraform init
+## 🔐 Security Features
 
-# Plan the deployment
-terraform plan
-
-# Apply the changes
-terraform apply
-```
-
-### 4. Access Your Application
-
-After deployment completes:
-- Your application will be available at the output IP address
-- SSH access: `ssh -i ~/.ssh/your-key ubuntu@<ip-address>`
-
-## 📋 Required Variables
-
-You **must** set these in `terraform.tfvars`:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `ssh_public_key` | Your SSH public key | `ssh-rsa AAAAB3Nza...` |
-| `db_password` | MySQL root password | `SecurePassword123!` |
-| `jwt_secret` | JWT signing secret | `your-jwt-secret` |
-
-## 🔧 Configuration Options
-
-### Instance Types
-- `t3.micro` - Free tier eligible (default)
-- `t3.small` - More memory for higher traffic
-- `t3.medium` - Production workloads
-
-### Security
-```hcl
-# Restrict SSH to your IP only (recommended)
-ssh_allowed_ips = ["YOUR.IP.ADDRESS/32"]
-```
-
-### Backup Configuration
-```hcl
-backup_retention_days = 7
-```
-
-## 📊 What Gets Deployed
-
-```
-┌─────────────────────────────────────┐
-│              Internet               │
-└─────────────┬───────────────────────┘
-              │
-    ┌─────────▼─────────┐
-    │   Internet Gateway │
-    └─────────┬─────────┘
-              │
-┌─────────────▼───────────────────────┐
-│              VPC                    │
-│  ┌─────────────────────────────┐    │
-│  │       Public Subnet         │    │
-│  │  ┌─────────────────────┐    │    │
-│  │  │    EC2 Instance     │    │    │
-│  │  │  - Ubuntu 22.04     │    │    │
-│  │  │  - Docker           │    │    │
-│  │  │  - Your App         │    │    │
-│  │  └─────────────────────┘    │    │
-│  └─────────────────────────────┘    │
-└─────────────────────────────────────┘
-```
-
-## 🔄 Management Commands
-
-```bash
-# View current state
-terraform show
-
-# Update infrastructure
-terraform plan
-terraform apply
-
-# Destroy everything (be careful!)
-terraform destroy
-
-# Format code
-terraform fmt
-
-# Validate configuration
-terraform validate
-```
-
-## 🔒 Security Features
-
+- **Static Elastic IP** (persistent across restarts)
 - **Encrypted EBS volumes**
-- **Security groups** with minimal required access
-- **Fail2Ban** for SSH protection
-- **Automatic security updates**
 - **SSH key-based authentication**
+- **PhpMyAdmin**: SSH tunnel access only
+- **HTTPS**: Self-signed certificate (ready for Let's Encrypt)
+- **Database**: Private network, password protected
 
-## 📈 Automated Setup Features
+## 🏷️ Key Technologies
 
-The user-data script automatically sets up:
-- **Daily database backups** (2 AM)
-- **Health checks** (every 5 minutes)
-- **Log rotation**
-- **Basic system monitoring**
-- **Fail2Ban security**
-- **Automatic security updates**
-
-## 🚨 Production Considerations
-
-For production use:
-
-1. **Enable S3 backend** for Terraform state:
-```hcl
-terraform {
-  backend "s3" {
-    bucket = "your-terraform-state-bucket"
-    key    = "ecommerce/terraform.tfstate"
-    region = "eu-west-1"
-  }
-}
-```
-
-2. **Restrict SSH access**:
-```hcl
-ssh_allowed_ips = ["YOUR.IP.ADDRESS/32"]
-```
-
-3. **Use larger instance type**:
-```hcl
-instance_type = "t3.small"  # or larger
-```
-
-4. **Enable Route53 DNS** (uncomment in main.tf)
+- **Frontend**: React, Bootstrap, Vite
+- **Backend**: Node.js, Express, JWT authentication
+- **Database**: MySQL 8 with health checks
+- **Infrastructure**: Terraform, AWS EC2, Docker Compose
+- **CI/CD**: GitHub Actions with automated deployment
+- **Proxy**: Nginx with SSL termination
 
 ## 🆘 Troubleshooting
 
-### SSH Connection Issues
+### Application Not Loading
 ```bash
-# Check security group allows your IP
-aws ec2 describe-security-groups --group-ids sg-xxxxxxxxx
-
-# Test connectivity
-telnet <instance-ip> 22
+./server-status.sh                    # Check status
+curl -k https://glamprinakis.com      # Test direct access
 ```
 
-### Application Not Starting
+### Database Issues
 ```bash
-# SSH to instance and check logs
-ssh ubuntu@<instance-ip>
-sudo journalctl -u cloud-init -f
-tail -f /var/log/user-data.log
+./connect-phpmyadmin.sh               # Access admin panel
+# OR SSH to server:
+ssh -i ~/.ssh/deploy_key_ec2 ubuntu@79.125.4.130
+docker compose -f docker-compose.prod.yml logs db
 ```
 
-### Terraform Errors
+### DNS Issues
 ```bash
-# Refresh state
-terraform refresh
-
-# Import existing resources
-terraform import aws_instance.web i-1234567890abcdef0
+nslookup glamprinakis.com             # Should return: 79.125.4.130
 ```
 
-## 📚 Next Steps
+### Deployment Failures
+Check GitHub Actions logs at: `https://github.com/glamprinakis/Web3/actions`
 
-After successful Terraform deployment:
-1. **Test your application** - Verify everything works
-2. **Set up domain DNS** - Point your domain to the Elastic IP
-3. **Enable SSL certificates** - Let's Encrypt will auto-configure
-4. **Add monitoring stack** - Prometheus + Grafana (optional)
-5. **Implement backup strategy** - Database and application backups
-6. **Set up CI/CD integration** - Deploy from GitHub Actions to this infrastructure
+## 📊 Project Structure
+
+```
+├── node/                    # Backend API
+├── react/                   # Frontend React app
+├── terraform/               # AWS infrastructure
+├── .github/workflows/       # CI/CD pipeline
+├── docker-compose.prod.yml  # Production containers
+├── nginx.conf              # Reverse proxy config
+├── db/                     # Database initialization
+└── Management scripts:
+    ├── start-server.sh
+    ├── stop-server.sh
+    ├── server-status.sh
+    ├── connect-phpmyadmin.sh
+    └── validate-environment.sh
+```
+
+## 🌟 Production Features
+
+- **Zero-downtime DNS**: Static IP preserved across deployments
+- **Health checks**: Database and API monitoring
+- **Automated backups**: Database snapshots
+- **Container orchestration**: Docker Compose with dependency management
+- **Environment validation**: Bulletproof configuration checking
+- **Cost optimization**: Easy start/stop with IP persistence
+
+
