@@ -16,7 +16,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change-this-in-prod';
 // --- DB pool ---
 let pool;
 
-async function connectToDatabase(retries = 10) {
+async function connectToDatabase(retries = 15) {
   // Skip database connection during tests
   if (process.env.NODE_ENV === 'test') {
     console.log('⚠️  Skipping database connection in test environment');
@@ -35,6 +35,8 @@ async function connectToDatabase(retries = 10) {
         waitForConnections: true,
         connectionLimit: 10,
         multipleStatements: false,
+        acquireTimeout: 60000,
+        timeout: 60000,
       });
       
       // Test the connection
@@ -65,8 +67,8 @@ async function connectToDatabase(retries = 10) {
         return;
       }
       
-      console.log(`⏳ Retrying database connection in 5 seconds...`);
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      console.log(`⏳ Retrying database connection in 3 seconds...`);
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
   }
 }
