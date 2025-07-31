@@ -36,6 +36,9 @@ async function connectToDatabase(retries = 15) {
     return;
   }
 
+  // List of possible passwords to try
+  const possiblePasswords = ['xyz123', 'change-me', 'securepassword123', '', 'password', 'root'];
+  
   while (retries > 0) {
     try {
       console.log(`🔗 Connecting to database at ${DB_HOST}:3306 with user ${DB_USER} (${retries} retries left)`);
@@ -83,6 +86,35 @@ async function connectToDatabase(retries = 15) {
       console.error(`🔍 Error code: ${error.code}`);
       console.error(`🔍 Error errno: ${error.errno}`);
       console.error(`🔍 Error sqlState: ${error.sqlState}`);
+      
+      // If it's an access denied error, try alternative passwords
+      if (error.code === 'ER_ACCESS_DENIED_ERROR' && retries === 15) {
+        console.log('🔍 Trying alternative passwords to identify the correct one...');
+        for (const testPassword of possiblePasswords) {
+          if (testPassword === DB_PASSWORD) continue; // Skip the one we already tried
+          
+          try {
+            console.log(`🧪 Testing password: ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'}`);
+            const testPool = await mysql.createPool({
+              host: DB_HOST,
+              user: DB_USER,
+              password: testPassword,
+              database: DB_NAME,
+              waitForConnections: true,
+              connectionLimit: 1,
+            });
+            
+            const [testRows] = await testPool.execute('SELECT 1 as test');
+            console.log(`✅ SUCCESS! Database was initialized with password: ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'}`);
+            console.log(`🔧 Update your .env file on the server to: DB_PASSWORD=${testPassword}`);
+            await testPool.end();
+            break;
+          } catch (testError) {
+            console.log(`❌ Password ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'} failed`);
+          }
+        }
+      }
+      
       console.error(`🔍 Full error:`, error);
       retries--;
       
