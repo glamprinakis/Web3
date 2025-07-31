@@ -42,7 +42,36 @@ app.use((req, res, next) => {
 });
 
 // --- Health ---
-app.get('/health', (req, res) => res.json({ ok: true }));
+app.get('/health', async (req, res) => {
+  try {
+    // Test database connection using the existing pool
+    await pool.execute('SELECT 1');
+    console.log('Health check passed:', new Date().toISOString());
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
+
+// Also add the /api/health endpoint for compatibility
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection using the existing pool
+    await pool.execute('SELECT 1');
+    console.log('API Health check passed:', new Date().toISOString());
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('API Health check failed:', error);
+    res.status(500).json({
+      ok: false,
+      error: error.message
+    });
+  }
+});
 
 // Helper for queries
 async function q(sql, params = []) {
