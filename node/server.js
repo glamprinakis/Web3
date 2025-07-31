@@ -17,6 +17,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'change-this-in-prod';
 let pool;
 
 async function connectToDatabase(retries = 10) {
+  // Skip database connection during tests
+  if (process.env.NODE_ENV === 'test') {
+    console.log('⚠️  Skipping database connection in test environment');
+    return;
+  }
+
   while (retries > 0) {
     try {
       console.log(`🔗 Connecting to database at ${DB_HOST}:3306 with user ${DB_USER} (${retries} retries left)`);
@@ -50,9 +56,13 @@ async function connectToDatabase(retries = 10) {
       retries--;
       
       if (retries === 0) {
-        console.error('💀 Final database connection attempt failed. Exiting...');
+        console.error('💀 Final database connection attempt failed.');
         console.error('Stack:', error.stack);
-        process.exit(1);
+        // Don't exit process in production, let it restart
+        if (process.env.NODE_ENV !== 'production') {
+          process.exit(1);
+        }
+        return;
       }
       
       console.log(`⏳ Retrying database connection in 5 seconds...`);
@@ -84,6 +94,13 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 // --- Debug endpoint to check database connectivity ---
 app.get('/debug/db', async (req, res) => {
   try {
+    if (!pool) {
+      return res.status(503).json({ 
+        database: 'not_connected', 
+        message: 'Database pool not initialized' 
+      });
+    }
+    
     const tables = await q('SHOW TABLES');
     const productCount = await q('SELECT COUNT(*) as count FROM products');
     const userCount = await q('SELECT COUNT(*) as count FROM users');
@@ -107,6 +124,9 @@ app.get('/debug/db', async (req, res) => {
 
 // Helper for queries
 async function q(sql, params = []) {
+  if (!pool) {
+    throw new Error('Database connection not available');
+  }
   const [rows] = await pool.execute(sql, params);
   return rows;
 }
