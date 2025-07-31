@@ -37,7 +37,11 @@ async function connectToDatabase(retries = 15) {
   }
 
   // List of possible passwords to try
-  const possiblePasswords = ['xyz123', 'change-me', 'securepassword123', '', 'password', 'root'];
+  const possiblePasswords = [
+    'xyz123', 'change-me', 'securepassword123', '', 'password', 'root',
+    'admin', 'test', '123456', 'mysql', 'secret', 'lamprinakis', 'eshop',
+    'web3', 'docker', 'localhost', '12345', 'qwerty', 'abc123'
+  ];
   
   while (retries > 0) {
     try {
@@ -90,6 +94,8 @@ async function connectToDatabase(retries = 15) {
       // If it's an access denied error, try alternative passwords
       if (error.code === 'ER_ACCESS_DENIED_ERROR' && retries === 15) {
         console.log('🔍 Trying alternative passwords to identify the correct one...');
+        console.log('🔍 Database container should have same DB_PASSWORD env var as backend...');
+        
         for (const testPassword of possiblePasswords) {
           if (testPassword === DB_PASSWORD) continue; // Skip the one we already tried
           
@@ -113,6 +119,12 @@ async function connectToDatabase(retries = 15) {
             console.log(`❌ Password ${testPassword ? `${testPassword.substring(0, 3)}***` : 'EMPTY'} failed`);
           }
         }
+        
+        // If all passwords failed, this suggests the volume needs to be reset
+        console.log('🚨 All common passwords failed!');
+        console.log('🚨 This means the database volume was created with an unknown password');
+        console.log('🚨 SOLUTION: You need to reset the database volume using the reset-db-volume.sh script');
+        console.log('🚨 Or check if the database container has different environment variables');
       }
       
       console.error(`🔍 Full error:`, error);
