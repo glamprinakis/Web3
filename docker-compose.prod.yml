@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   # Build React and copy artifacts to ./react-build on the host
   frontend-builder:
