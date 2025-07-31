@@ -32,6 +32,9 @@ echo "🌐 Server Information:"
 # Try multiple ways to get server IP
 SERVER_IP=$(terraform output -raw server_ip 2>/dev/null)
 if [ -z "$SERVER_IP" ]; then
+    SERVER_IP=$(terraform output -raw instance_public_ip 2>/dev/null)
+fi
+if [ -z "$SERVER_IP" ]; then
     SERVER_IP=$(terraform output server_ip 2>/dev/null | tr -d '"')
 fi
 if [ -z "$SERVER_IP" ]; then

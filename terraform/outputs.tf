@@ -12,6 +12,11 @@ output "instance_public_ip" {
   value       = aws_eip.web.public_ip
 }
 
+output "server_ip" {
+  description = "Server IP address (alias for instance_public_ip)"
+  value       = aws_eip.web.public_ip
+}
+
 output "instance_public_dns" {
   description = "Public DNS name of the EC2 instance"
   value       = aws_instance.web.public_dns
