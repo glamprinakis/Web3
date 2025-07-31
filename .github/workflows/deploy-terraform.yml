@@ -97,9 +97,37 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
+            echo "📁 Current directory structure:"
+            ls -la
+
+            echo "🐳 Current Docker state:"
+            docker ps -a
+            docker network ls
+
             echo "🧱 Building full stack (frontend, proxy, backend)..."
             docker compose -f docker-compose.prod.yml down
             docker compose -f docker-compose.prod.yml up -d --build --force-recreate --no-deps
+
+            echo "⏳ Waiting for containers to start..."
+            sleep 5
+
+            echo "🔍 Container status:"
+            docker compose -f docker-compose.prod.yml ps
+            
+            echo "📝 Checking container logs..."
+            echo "Backend logs:"
+            docker compose -f docker-compose.prod.yml logs backend
+            echo "Proxy logs:"
+            docker compose -f docker-compose.prod.yml logs proxy
+            echo "DB logs:"
+            docker compose -f docker-compose.prod.yml logs db
+
+            echo "🌐 Testing nginx config:"
+            docker compose -f docker-compose.prod.yml exec proxy nginx -t
+
+            echo "🔌 Network connectivity test:"
+            docker compose -f docker-compose.prod.yml exec backend curl -v http://localhost:3000/health
+            docker compose -f docker-compose.prod.yml exec proxy curl -v http://backend:3000/health
 
             echo "🧹 Cleaning up old Docker resources..."
             docker image prune -f
@@ -107,10 +135,21 @@ jobs:
             docker network prune -f
             docker volume prune -f
 
-            echo "⏳ Waiting for health check..."
-            sleep 5
+            echo "⏳ Testing health endpoints..."
+            echo "Testing direct backend:"
+            curl -v http://localhost:3000/health || true
+            echo "Testing through nginx:"
+            curl -v http://localhost/api/health || true
+            
             if ! curl -sf http://localhost/api/health; then
               echo "❌ Health check failed!"
+              echo "💡 Debug information:"
+              echo "1. Check if backend is running:"
+              docker compose -f docker-compose.prod.yml ps backend
+              echo "2. Check backend direct access:"
+              curl -v http://localhost:3000/health || true
+              echo "3. Check nginx config:"
+              docker compose -f docker-compose.prod.yml exec proxy cat /etc/nginx/conf.d/default.conf
               exit 1
             fi
 
